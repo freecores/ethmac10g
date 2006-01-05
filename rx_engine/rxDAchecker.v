@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 100ps / 10ps
 ////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer:
@@ -36,9 +36,9 @@ module rxDAchecker(local_invalid, broad_valid, multi_valid, MAC_Addr, da_addr);
 	 // check individual MAC address
 	 wire broad_valid_1;
 
-	 assign multi_valid   = (da_addr~^Multicast);
-	 assign broad_valid_1 = (da_addr[7:0] ~^ Broadcast[7:0]);
-	 assign broad_valid   = broad_valid_1 &(da_addr[47:8] ~^ Broadcast[47:8]);
+	 assign multi_valid   = (da_addr==Multicast);
+	 assign broad_valid_1 = (da_addr[7:0]== Broadcast[7:0]);
+	 assign broad_valid   = broad_valid_1 &(da_addr[47:8]==Broadcast[47:8]);
 	 assign local_invalid = da_addr^MAC_Addr;
 
 endmodule

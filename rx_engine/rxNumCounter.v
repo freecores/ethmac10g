@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 100ps / 10ps
 ////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer:
@@ -54,7 +54,7 @@ module rxNumCounter(rxclk, reset, start_data_cnt, start_tagged_cnt, small_frame,
     counter tagged_counter(.clk(rxclk), .reset(reset), .load(end_tagged_cnt), .en(start_tagged_cnt), .value(tagged_data_cnt));
 	 defparam tagged_counter.WIDTH = 13;
 
-	 assign end_cnt = end_data_cnt | start_tagged_cnt | ~start_data_cnt;
+	 assign end_cnt = end_normal_data_cnt | start_tagged_cnt | ~start_data_cnt;
 
 	 assign end_normal_data_cnt = (data_cnt == integer_cnt);
 

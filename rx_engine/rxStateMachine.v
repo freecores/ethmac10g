@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 100ps / 10ps
 ////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer:
@@ -21,7 +21,7 @@
 module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, len_invalid, end_data_cnt, end_tagged_cnt,
        tagged_frame, length_error, end_fcs, crc_check_valid, crc_check_invalid, start_da, start_lt, inband_fcs,
 		 start_data_cnt, start_tagged_cnt, receiving, recv_end, good_frame_get, bad_frame_get, get_error_code, small_frame
-		 , end_small_cnt,receiving_frame);
+		 , end_small_cnt,receiving_frame, wait_crc_check);
    
 	 input rxclk;
     input reset;
@@ -65,9 +65,10 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, len_inv
 	 output recv_end; // Receive process ends, either because formal ending or faults happen;
 	 output good_frame_get;// A good frame has been received;
 	 output bad_frame_get; // A bad frame has been received; 
+	 output wait_crc_check;// 
 	 
-	 parameter IDLE = 0, rxReceiveDA = 1, rxReceiveLT = 2, rxReceiveData = 3;
-	 parameter rxReceiveFCS = 4, rxWaitCheck = 5;
+	 parameter IDLE = 0, rxReceiveDA = 1, rxReceiveLT = 2, rxReceiveData = 4;
+	 parameter rxReceiveFCS = 8;
 	 parameter TP =1;
 
 	 wire    start_da;
@@ -81,7 +82,7 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, len_inv
 	 wire    good_frame_get;
 	 wire    bad_frame_get;
 	 
-	 reg[2:0] rxstate, rxstate_next;
+	 reg[3:0] rxstate, rxstate_next;
 
 	 always@(rxstate, get_sfd, local_invalid, len_invalid, recv_enable,
 	         tagged_frame, end_data_cnt, end_tagged_cnt, get_error_code,
@@ -92,8 +93,10 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, len_inv
 			else begin	 
 			    case (rxstate)
 			      IDLE: begin 
-			       		if (get_sfd & recv_enable)
+			       		if (get_sfd && recv_enable)
 				       		rxstate_next <=#TP rxReceiveDA;
+							else
+							   rxstate_next <=#TP IDLE;
 					end
            		rxReceiveDA: begin	  
 				   		rxstate_next <=#TP rxReceiveLT;
@@ -106,20 +109,17 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, len_inv
 					     		rxstate_next <=#TP IDLE;
 					 		else if (end_data_cnt | end_tagged_cnt) 
 					     		rxstate_next <=#TP rxReceiveFCS;
-					 
+							else
+							   rxstate_next <=#TP rxReceiveData;
 					end
 					rxReceiveFCS: begin	 //length_error should have high priority to end_fcs
 				   		if (length_error)
 							   rxstate_next <=#TP IDLE;
 							else if (end_fcs)
-    					  		rxstate_next <=#TP rxWaitCheck;
+    					  		rxstate_next <=#TP IDLE;
+							else
+							   rxstate_next <=#TP rxReceiveFCS;
 				 	end
-			    	rxWaitCheck: begin
-					 		if (crc_check_valid)
-					     		rxstate_next <=#TP IDLE;
-					 		else if (length_error | crc_check_invalid)
-					     		rxstate_next <=#TP IDLE;
-				  end   
 			   endcase
 		   end
   	   end
@@ -147,15 +147,27 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, len_inv
 			 end
 	 end
 
-	 assign start_da = (rxstate == rxReceiveDA);
-	 assign start_lt = (rxstate == rxReceiveLT);
-	 assign start_data_cnt = (rxstate == rxReceiveData) & (~tagged_frame);
-	 assign start_tagged_cnt = (rxstate == rxReceiveData) & tagged_frame;
-	 assign receiving_data = (~rxstate[2]&(rxstate[0] | rxstate[1])); // in DA,LT,DATA status
-	 assign receiving_frame = receiving_data |(rxstate[2]&~rxstate[1]&~rxstate[0]); //in DA,LT,Data,FCS status
-	 assign receiving_small = start_da | start_lt | ((rxstate == rxReceiveData) & ~end_small_cnt_d2);
+	 assign start_da = rxstate[0];
+	 assign start_lt = rxstate[1];
+	 assign start_data_cnt = rxstate[2] & (~tagged_frame);
+	 assign start_tagged_cnt = rxstate[2] & tagged_frame;
+	 assign receiving_data = rxstate[2] | rxstate[1] | rxstate[0]; // in DA,LT,DATA status
+	 assign receiving_frame = rxstate[3] | receiving_data; //in DA,LT,Data,FCS status
+	 assign receiving_small = start_da | start_lt | (rxstate[2] & ~end_small_cnt_d2);
 	 assign receiving = inband_fcs? receiving_frame:(small_frame? receiving_small:receiving_data);
     assign recv_end = ~receiving_frame;
-	 assign bad_frame_get =((rxstate == rxReceiveData) &(local_invalid | len_invalid | get_error_code))|((rxstate == rxReceiveFCS) & length_error) | ((rxstate == rxWaitCheck) & (length_error | crc_check_invalid));
-	 assign good_frame_get = (rxstate == rxWaitCheck) & crc_check_valid;
+	 assign bad_frame_get =(rxstate[2] &(local_invalid | len_invalid | get_error_code))||(rxstate[3] & (length_error | get_error_code)) || crc_check_invalid;
+	 assign good_frame_get = crc_check_valid;
+	 
+	 reg  wait_crc_check;							  	
+	 always@(posedge rxclk or posedge reset) begin
+	      if (reset)
+			   wait_crc_check <=#TP 0;
+			else if (rxstate[3] && end_fcs)
+			   wait_crc_check <=#TP 1'b1;
+		   else if (crc_check_valid || crc_check_invalid)
+			   wait_crc_check <=#TP 1'b0;
+			else
+			   wait_crc_check <=#TP wait_crc_check;
+	 end
 endmodule

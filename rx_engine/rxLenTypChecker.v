@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 100ps / 10ps
 ////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer:
@@ -36,6 +36,10 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
+`define MAX_VALID_LENGTH 16'h05DC
+
+
 module rxLenTypChecker(lt_data, tagged_len, jumbo_enable, tagged_frame, pause_frame, small_frame,
                        len_invalid, integer_cnt, small_integer_cnt, bits_more, inband_fcs,
 							  small_bits_more, vlan_enable );
@@ -46,30 +50,33 @@ module rxLenTypChecker(lt_data, tagged_len, jumbo_enable, tagged_frame, pause_fr
 	 input        inband_fcs;	 //In-band FCS
 	 input        vlan_enable;  //VLAN mode enable bit
 
-	 output       pause_frame;	 //Indicate that current frame is a pause frame (a kind of control frame)	
+	 input        pause_frame;	 //Indicate that current frame is a pause frame (a kind of control frame)	
 	 output       small_frame; 
 	 output       len_invalid;	 //Indicate that current frame is not an valid frame
 
 	 output[12:0] integer_cnt;	 //number of 64bits DATA field contains
 	 output[12:0] small_integer_cnt;	//number of 64bits real DATA field contains(without pad part)
 	 
-	 output       tagged_frame;	 //number of 64bits DATA field of tagged frame contains
+	 input        tagged_frame;	 //number of 64bits DATA field of tagged frame contains
 	 
 	 output[2:0]  bits_more;	 //number that is less than 64bits(whole data field)
 	 output[2:0]  small_bits_more; //number that is less than 64bits(unpadded data field) 
 
     wire[15:0]   current_len;
 	 wire[15:0]   current_cnt;
+	 wire         len_init;
 	 wire         small_frame;
 	 wire         tagged_frame;
 
 	 parameter TP =1 ;
 
-	 assign current_len = tagged_frame?(tagged_len+2):(lt_data-2);	 //Data field length
+	 assign current_len = tagged_frame?tagged_len:lt_data;	 //Data field length
 
 	 assign current_cnt = current_len >> 3; //the number of 64bits data field has
 
-	 assign padded_frame = (current_len[15:6]==0) & (~current_len[5] | (current_len[5] & ~current_len[4]));
+	 assign len_init = ~(|lt_data);
+
+	 assign padded_frame = ~(|current_len[15:6]) & (~current_len[5] | (current_len[5] & ~current_len[4])) & ~len_init;
 
 	 assign small_frame = padded_frame & ~inband_fcs;  //padded frame
 
@@ -80,11 +87,23 @@ module rxLenTypChecker(lt_data, tagged_len, jumbo_enable, tagged_frame, pause_fr
 	 assign integer_cnt = padded_frame? 5 :current_cnt[12:0];
 
 	 assign small_integer_cnt = current_cnt[12:0];
-	
-	 assign tagged_frame = (lt_data==16'h8100) & vlan_enable; 
 
-	 assign pause_frame = (lt_data==16'h8808);
-
-	 assign len_invalid = ((~jumbo_enable & (lt_data > 1500)) & ~(tagged_frame|pause_frame)) | (~vlan_enable & tagged_frame);
+	 assign len_invalid = ((~jumbo_enable) & (current_len > `MAX_VALID_LENGTH) & ~(tagged_frame|pause_frame)) | (~vlan_enable & tagged_frame);
 	 //not a large frame(except LT is type interpretion) when jumbo is not enabled, not a tagged frame when vlan is not enbaled
+
+	 ///////////////////////////////////////////
+	 // Signals used for statistics
+	 ///////////////////////////////////////////
+	 
+//	 assign len_small_than_127 = lt_data < 110;
+//
+//	 assign len_small_than_255 = lt_data < 238;
+//	 
+//    assign len_small_than_511 = lt_data < 406;
+//
+//	 assign length_65_127 = ~padded_frame & len_small_than_127;
+//
+//	 assign length_128_255 = ~len_small_than_127 & len_small_than_255;
+//
+//	 assign length_256_511 = ~len_small_than_255 & len_small_than_511;
 endmodule

@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 100ps / 10ps
 ////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer:
@@ -26,8 +26,19 @@
 `define ERROR      8'hfe
 `define ALLONES    8'hff
 `define ALLZEROS   8'h00
+`define BYTE_0     3'b000
+`define BYTE_1     3'b001
+`define BYTE_2     3'b010
+`define BYTE_3     3'b011
+`define BYTE_4     3'b100
+`define BYTE_5     3'b101
+`define BYTE_6     3'b110
+`define BYTE_7     3'b111
 
-module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, tagged_frame,
+`define TAG_SIGN   16'h8100
+`define PAUSE_SIGN 16'h8808
+
+module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, tagged_frame,pause_frame,
                      bits_more, small_bits_more, tagged_len, small_frame, end_data_cnt,inband_fcs, 
 							end_small_cnt, da_addr, lt_data, crc_code, end_fcs, crc_valid, length_error,
 						   get_sfd, get_efd, get_error_code,receiving, rxc_fifo, receiving_frame);
@@ -39,7 +50,6 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 
 	 input start_da;
 	 input start_lt;
-	 input tagged_frame;
 	 input [2:0] bits_more;
 	 input [2:0] small_bits_more;
 	 input small_frame;
@@ -55,6 +65,8 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 	 output[15:0] tagged_len;
 	 output[31:0] crc_code;
 	 output       end_fcs;
+	 output       tagged_frame;
+	 output       pause_frame;
 	 output[7:0]  crc_valid;
 	 output       length_error;
 
@@ -121,13 +133,38 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
        if (reset) 
 	       lt_data <=#TP 0;
    	 else if (start_lt) 
-	       lt_data <=#TP rxd64[31:16];
+	       lt_data <=#TP rxd64[31:16] - 2;
        else if(~receiving_frame)
-		    lt_data <=#TP 16'h0500;
+		    lt_data <=#TP 16'h0578;
 		 else
 		    lt_data <=#TP lt_data;
     end
 
+	 reg tagged_frame;
+	 always@(posedge rxclk_180 or posedge reset) begin
+	    if (reset)
+		    tagged_frame <=#TP 1'b0;
+       else	if (start_lt)
+		    tagged_frame <=#TP (rxd64[31:16] == `TAG_SIGN); 
+		 else	if (~receiving_frame)			
+		    tagged_frame <=#TP 1'b0;
+		 else								
+		    tagged_frame <=#TP tagged_frame;
+	 end
+	 
+	 reg pause_frame;
+	 always@(posedge rxclk_180 or posedge reset) begin
+	    if (reset)
+		    pause_frame <=#TP 1'b0;
+       else	if (start_lt)
+		    pause_frame <=#TP (rxd64[31:16] == `PAUSE_SIGN); 
+		 else	if(~receiving_frame)
+		    pause_frame <=#TP 1'b0;
+		 else 
+		    pause_frame <=#TP pause_frame;
+	 end
+	  
+    
   ///////////////////////////////////////
   // Get Tagged Frame Length
   ///////////////////////////////////////
@@ -142,9 +179,9 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 	        if (reset)
                tagged_len <=#TP 0;
 			  else if(~tagged_frame_d1 & tagged_frame)
-			      tagged_len <=#TP rxd64[63:48]; 
+			      tagged_len <=#TP rxd64[63:48] + 2; 
            else if(~receiving_frame)
-			      tagged_len <=#TP 16'h0500;
+			      tagged_len <=#TP 16'h0578;
 			  else
 			      tagged_len <=#TP tagged_len;
 	 end
@@ -181,21 +218,21 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 			 crc_code_tmp_d1 <=#TP crc_code_tmp;
 	 end	
 	 
-	 assign shift_tmp = (8-bits_more)<<3;
+	 assign shift_tmp = {~(bits_more[1]&bits_more[0]), bits_more[0]}<<3;
 	 assign special = `ALLONES >> bits_more;
 	 assign crc_code_tmp1 = rxd64[63:32] >> shift_tmp;	
 	 assign next_cycle = bits_more[2]&(bits_more[1] | bits_more[0]);				 
 	 assign crc_valid = end_data_cnt? ~special: `ALLONES;
 	 assign end_fcs = end_data_cnt_d1;
 	 //timing constraint should be added here to make length_error be valid earlier than end_fcs
-	 assign length_error = (end_data_cnt    &(((bits_more == 0) & ~get_t_chk[3])  |
-	                                          ((bits_more == 1) & ~get_t_chk[2])  |
-	                                          ((bits_more == 2) & ~get_t_chk[1])  |
-	                                          ((bits_more == 3) & ~get_t_chk[0])))|
-	                       (end_data_cnt_d1 &(((bits_more == 4) & ~get_t_chk[7])  |
-	                                          ((bits_more == 5) & ~get_t_chk[6])  |
-	                                          ((bits_more == 6) & ~get_t_chk[5])  |
-	                                          ((bits_more == 7) & ~get_t_chk[4])));
+	 assign length_error = (end_data_cnt    &(((bits_more == `BYTE_0) & ~get_t_chk[3])  |
+	                                          ((bits_more == `BYTE_1) & ~get_t_chk[2])  |
+	                                          ((bits_more == `BYTE_2) & ~get_t_chk[1])  |
+	                                          ((bits_more == `BYTE_3) & ~get_t_chk[0])))|
+	                       (end_data_cnt_d1 &(((bits_more == `BYTE_4) & ~get_t_chk[7])  |
+	                                          ((bits_more == `BYTE_5) & ~get_t_chk[6])  |
+	                                          ((bits_more == `BYTE_6) & ~get_t_chk[5])  |
+	                                          ((bits_more == `BYTE_7) & ~get_t_chk[4])));
 
 	 assign tmp_crc_data[31] = {rxd64[7],rxd64[15],rxd64[23],rxd64[31],rxd64[39],rxd64[47],rxd64[55],rxd64[63]};
 	 assign tmp_crc_data[30] = {rxd64[6],rxd64[14],rxd64[22],rxd64[30],rxd64[38],rxd64[46],rxd64[54],rxd64[62]};

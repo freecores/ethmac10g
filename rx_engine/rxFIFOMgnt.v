@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 100ps / 10ps
 ////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer:
@@ -18,7 +18,8 @@
 // Additional Comments:
 // 
 ////////////////////////////////////////////////////////////////////////////////
-module rxFIFOMgnt(rxclk_180, reset, rxd64, rxc_fifo, inband_fcs, receiving, recv_end, rx_data_valid, rx_data);
+module rxFIFOMgnt(rxclk_180, reset, rxd64, rxc_fifo, inband_fcs, receiving, recv_end, rx_data_valid, rx_data,
+                  wait_crc_check);
     input rxclk_180;
     input reset;
     input [63:0] rxd64;
@@ -26,6 +27,7 @@ module rxFIFOMgnt(rxclk_180, reset, rxd64, rxc_fifo, inband_fcs, receiving, recv
 	 input receiving;
 	 input recv_end;
 	 input inband_fcs;
+	 input wait_crc_check;
 
 	 output[7:0] rx_data_valid;
 	 output[63:0] rx_data;
@@ -36,7 +38,7 @@ module rxFIFOMgnt(rxclk_180, reset, rxd64, rxc_fifo, inband_fcs, receiving, recv
 	 wire fifo_rd_en;
 	 wire fifo_wr_en;
 
-	 assign fifo_rd_en = ~rxfifo_empty;
+	 assign fifo_rd_en = ~rxfifo_empty & ~wait_crc_check;
 	 assign fifo_wr_en = receiving & ~recv_end;
 	 
 	 rxdatafifo rxdatain(.clk(rxclk_180),
