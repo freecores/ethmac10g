@@ -23,7 +23,7 @@
 *     appliances, devices, or systems. Use in such applications are            *
 *     expressly prohibited.                                                    *
 *                                                                              *
-*     (c) Copyright 1995-2005 Xilinx, Inc.                                     *
+*     (c) Copyright 1995-2004 Xilinx, Inc.                                     *
 *     All rights reserved.                                                     *
 *******************************************************************************/
 // The synopsys directives "translate_off/translate_on" specified below are
@@ -72,9 +72,9 @@ output empty;
 		1,	// c_rd_ack_low
 		1,	// c_rd_err_low
 		8,	// c_read_data_width
-		2048,	// c_read_depth
+		128,	// c_read_depth
 		8,	// c_write_data_width
-		2048,	// c_write_depth
+		128,	// c_write_depth
 		1,	// c_wr_ack_low
 		1)	// c_wr_err_low
 	inst (

@@ -18,23 +18,25 @@
 // Additional Comments:
 // 
 ////////////////////////////////////////////////////////////////////////////////
-module rxReceiveEngine(rxclk_in, reset_in, rxd64, rxc8, rxStatRegPlus,reset_out,
-                       cfgRxRegData, rx_data, rx_data_valid, rx_good_frame, link_fault, 
-                       rx_bad_frame, rxCfgofRS, rxTxLinkFaul);
+module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,reset_out,
+                       cfgRxRegData_in, rx_data, rx_data_valid, rx_good_frame, link_fault_in, 
+                       rx_bad_frame, rxCfgofRS, rxTxLinkFault);
     input rxclk_in;
     input reset_in;
-    input [63:0] rxd64;
-    input [7:0] rxc8;
+    input [63:0] rxd64_in;
+    input [7:0] rxc8_in;
 	 output reset_out;
     output [12:0] rxStatRegPlus;	
-    input [52:0] cfgRxRegData;
+    input [52:0] cfgRxRegData_in;
     output [63:0] rx_data;
     output [7:0] rx_data_valid;
     output rx_good_frame;
     output rx_bad_frame;
-	 input [1:0] link_fault;
+	 input [1:0] link_fault_in;
 	 output[2:0] rxCfgofRS;
-    output [1:0] rxTxLinkFaul;
+    output [1:0] rxTxLinkFault;
+
+	 parameter TP =1;
 
     wire rxclk;
 	 wire rxclk_180;
@@ -61,7 +63,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64, rxc8, rxStatRegPlus,reset_out,
 	 wire [7:0]  crc_valid;
 	 wire [7:0]  rxc_fifo;
 	 wire length_error;
-	 wire get_sfd, get_efd, get_error_code;
+	 wire get_sfd,get_error_code;
 	 wire receiving;
 	 wire receiving_frame;
 
@@ -79,7 +81,37 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64, rxc8, rxStatRegPlus,reset_out,
 	 wire crc_check_valid;
 	 wire crc_check_invalid;
 
+	 //////////////////////////////////////////
+	 // Input Registers
+	 //////////////////////////////////////////
+	 
+	 reg [63:0]rxd64,rxd64_d1;
+	 reg [7:0]rxc8;
+	 reg [52:0]cfgRxRegData;
+	 always@(posedge rxclk or posedge reset) begin
+	       if (reset)	begin
+			    rxd64 <=#TP 0;
+				 rxd64_d1<=#TP 0;
+				 rxc8  <=#TP 0;
+				 cfgRxRegData <=#TP 0;
+			 end
+			 else begin
+			    rxd64 <=#TP rxd64_in;
+				 rxd64_d1<=#TP rxd64;
+				 rxc8  <=#TP rxc8_in;
+				 cfgRxRegData <=#TP cfgRxRegData_in;
+			 end
+	 end
+	 
+	 reg [1:0]link_fault;
+	 always@(posedge rxclk or posedge reset) begin
+			  if (reset)
+			     link_fault<=#TP 0;
+			  else
+			     link_fault<=#TP link_fault_in;
+	 end
 
+	 assign rxTxLinkFault = link_fault;
 	 //////////////////////////////////////////
 	 // Read Receiver Configuration Word
 	 //////////////////////////////////////////
@@ -118,8 +150,8 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64, rxc8, rxStatRegPlus,reset_out,
 	 // Upper Interface with client
 	 ///////////////////////////////////////
 
-	 rxFIFOMgnt upperinterface(.rxclk_180(rxclk_180), .reset(reset), .rxd64(rxd64), .rxc_fifo(rxc_fifo), .receiving(receiving), 
-	                           .recv_end(recv_end), .rx_data_valid(rx_data_valid), .inband_fcs(inband_fcs),.wait_crc_check(wait_crc_check),
+	 rxFIFOMgnt upperinterface(.rxclk(rxclk), .reset(reset), .rxd64(rxd64_d1), .rxc_fifo(rxc_fifo), .receiving_frame(receiving_frame), 
+	                           .recv_end(recv_end), .rx_data_valid(rx_data_valid), .wait_crc_check(wait_crc_check),
 										.rx_data(rx_data));
 
 	 ///////////////////////////////////////
@@ -131,7 +163,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64, rxc8, rxStatRegPlus,reset_out,
 										  .small_bits_more(small_bits_more), .tagged_len(tagged_len), .small_frame(small_frame), 
 										  .end_data_cnt(end_data_cnt), .end_small_cnt(end_small_cnt),.da_addr(da_addr),.lt_data(lt_data),
 										  .crc_code(crc_code),.end_fcs(end_fcs), .crc_valid(crc_valid), .length_error(length_error),
-						              .get_sfd(get_sfd), .get_efd(get_efd), .get_error_code(get_error_code),.receiving(receiving), 
+						              .get_sfd(get_sfd), .get_error_code(get_error_code),.receiving(receiving), .rxd64_d1(rxd64_d1),
 										  .rxc_fifo(rxc_fifo),.receiving_frame(receiving_frame),.pause_frame(pause_frame)
 										 );
 
@@ -139,7 +171,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64, rxc8, rxStatRegPlus,reset_out,
 	 // Destination Address Checker
 	 //////////////////////////////////////
 
-	 rxDAchecker  dachecker(.local_invalid(local_invalid), .broad_valid(broad_valid), .multi_valid(multi_valid), .MAC_Addr(MAC_Addr),
+	 rxDAchecker  dachecker(.rxclk(rxclk), .reset(reset), .local_invalid(local_invalid), .broad_valid(broad_valid), .multi_valid(multi_valid), .MAC_Addr(MAC_Addr),
 	                        .da_addr(da_addr));
 	              defparam dachecker.Multicast = 48'h0180C2000001;
 	              defparam dachecker.Broadcast = 48'hffffffffffff;
@@ -148,9 +180,9 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64, rxc8, rxStatRegPlus,reset_out,
 	 // Length/Type field checker
 	 /////////////////////////////////////
 
-	 rxLenTypChecker lenchecker(.lt_data(lt_data), .tagged_len(tagged_len), .jumbo_enable(jumbo_enable), .tagged_frame(tagged_frame),
+	 rxLenTypChecker lenchecker(.rxclk(rxclk), .reset(reset), .lt_data(lt_data), .tagged_len(tagged_len), .jumbo_enable(jumbo_enable), .tagged_frame(tagged_frame),
 	                            .pause_frame(pause_frame), .small_frame(small_frame), .len_invalid(len_invalid), .vlan_enable(vlan_enable),
-										 .integer_cnt(integer_cnt), .small_integer_cnt(small_integer_cnt), .inband_fcs(inband_fcs),
+										 .integer_cnt(integer_cnt), .small_integer_cnt(small_integer_cnt),
 										 .bits_more(bits_more), .small_bits_more(small_bits_more)
 										 );		
 
@@ -158,8 +190,8 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64, rxc8, rxStatRegPlus,reset_out,
 	 // Counters used in Receive Engine
 	 /////////////////////////////////////
 
-    rxNumCounter counters(.rxclk(rxclk), .reset(reset), .start_data_cnt(start_data_cnt), .start_tagged_cnt(start_tagged_cnt), .small_frame(small_frame),
-                          .integer_cnt(integer_cnt), .small_integer_cnt(small_integer_cnt), .tagged_frame(tagged_frame),
+    rxNumCounter counters(.rxclk(rxclk), .reset(reset), .start_data_cnt(start_data_cnt), .start_tagged_cnt(start_tagged_cnt),
+                          .integer_cnt(integer_cnt), .small_integer_cnt(small_integer_cnt), 
 								  .end_data_cnt(end_data_cnt), .end_small_cnt(end_small_cnt), .end_tagged_cnt(end_tagged_cnt)
 								  );
  
@@ -183,5 +215,5 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64, rxc8, rxStatRegPlus,reset_out,
 	 /////////////////////////////////////
 	 rxCRC crcmodule(.rxclk(rxclk), .reset(reset), .receiving_frame(receiving_frame), .rxd64(rxd64), .end_fcs(end_fcs), .crc_code(crc_code),
 	                 .crc_valid(crc_valid), .crc_check_invalid(crc_check_invalid), .crc_check_valid(crc_check_valid), .bits_more(bits_more));
-					   
+//					   
 endmodule

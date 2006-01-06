@@ -23,7 +23,7 @@
 *     appliances, devices, or systems. Use in such applications are            *
 *     expressly prohibited.                                                    *
 *                                                                              *
-*     (c) Copyright 1995-2005 Xilinx, Inc.                                     *
+*     (c) Copyright 1995-2004 Xilinx, Inc.                                     *
 *     All rights reserved.                                                     *
 *******************************************************************************/
 // The synopsys directives "translate_off/translate_on" specified below are
@@ -45,8 +45,7 @@ module rxdatafifo(
 	rd_en,
 	dout,
 	full,
-	empty,
-	data_count);
+	empty);
 
 
 input clk;
@@ -57,14 +56,13 @@ input rd_en;
 output [63 : 0] dout;
 output full;
 output empty;
-output [7 : 0] data_count;
 
 // synopsys translate_off
 
       SYNC_FIFO_V5_0 #(
 		8,	// c_dcount_width
 		0,	// c_enable_rlocs
-		1,	// c_has_dcount
+		0,	// c_has_dcount
 		0,	// c_has_rd_ack
 		0,	// c_has_rd_err
 		0,	// c_has_wr_ack
@@ -74,9 +72,9 @@ output [7 : 0] data_count;
 		1,	// c_rd_ack_low
 		1,	// c_rd_err_low
 		64,	// c_read_data_width
-		256,	// c_read_depth
+		128,	// c_read_depth
 		64,	// c_write_data_width
-		256,	// c_write_depth
+		128,	// c_write_depth
 		1,	// c_wr_ack_low
 		1)	// c_wr_err_low
 	inst (
@@ -88,11 +86,11 @@ output [7 : 0] data_count;
 		.DOUT(dout),
 		.FULL(full),
 		.EMPTY(empty),
-		.DATA_COUNT(data_count),
 		.RD_ACK(),
 		.WR_ACK(),
 		.RD_ERR(),
-		.WR_ERR());
+		.WR_ERR(),
+		.DATA_COUNT());
 
 
 // synopsys translate_on

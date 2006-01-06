@@ -31,10 +31,10 @@ module counter(clk, reset, load, en, value);
    
     always @(posedge clk or posedge reset)
        if (reset)	 
-          value <= 0;
+          value <= 1;
        else begin
 		    if (load) 
-             value <= 0;
+             value <= 1;
           else if (en)
              value <= value + 1;
 		 end

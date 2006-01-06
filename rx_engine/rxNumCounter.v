@@ -19,8 +19,8 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////
 
-module rxNumCounter(rxclk, reset, start_data_cnt, start_tagged_cnt, small_frame, 
-                    integer_cnt, small_integer_cnt, end_data_cnt, tagged_frame, 
+module rxNumCounter(rxclk, reset, start_data_cnt, start_tagged_cnt, 
+                    integer_cnt, small_integer_cnt, end_data_cnt,
 						  end_small_cnt, end_tagged_cnt);
     
 	 input rxclk;            //receive clk	 
@@ -28,9 +28,6 @@ module rxNumCounter(rxclk, reset, start_data_cnt, start_tagged_cnt, small_frame,
 
     input start_data_cnt;	 //start to count	data field
     input start_tagged_cnt; //start to count tagged frame	
-
-    input small_frame;
-	 input tagged_frame;
 
 	 input[12:0] integer_cnt;      //number of 64bits DATA field contains
 	 input[12:0] small_integer_cnt;//number of 64bits real DATA field contains(without pad part)
@@ -42,7 +39,9 @@ module rxNumCounter(rxclk, reset, start_data_cnt, start_tagged_cnt, small_frame,
 	 wire   end_cnt;
 	 wire[12:0] data_cnt;
 	 wire[12:0] tagged_data_cnt;
-	 wire end_normal_data_cnt;
+  	 reg end_normal_data_cnt;
+
+	 parameter TP =1;
 
 	 // Data counter
     // used in rxReceiveData field, 
@@ -56,11 +55,26 @@ module rxNumCounter(rxclk, reset, start_data_cnt, start_tagged_cnt, small_frame,
 
 	 assign end_cnt = end_normal_data_cnt | start_tagged_cnt | ~start_data_cnt;
 
-	 assign end_normal_data_cnt = (data_cnt == integer_cnt);
+	 reg end_small_cnt;
+	 reg end_tagged_cnt;
+	 always@(posedge rxclk or posedge reset) begin
+	       if (reset) begin
+			    end_normal_data_cnt <=#TP 0;
+				 end_small_cnt       <=#TP 0;
+				 end_tagged_cnt      <=#TP 0;
+			 end
+			 else begin
+			    end_normal_data_cnt <=#TP (data_cnt == integer_cnt);
+				 end_small_cnt       <=#TP (data_cnt == small_integer_cnt);
+				 end_tagged_cnt      <=#TP (tagged_data_cnt == integer_cnt);
+			 end
+	 end
 
-	 assign end_small_cnt = small_frame & (data_cnt == small_integer_cnt);
-
-	 assign end_tagged_cnt = tagged_frame & (tagged_data_cnt == integer_cnt);
+//	 assign end_normal_data_cnt = (data_cnt == integer_cnt);
+//
+//	 assign end_small_cnt =  (data_cnt == small_integer_cnt);
+//
+//	 assign end_tagged_cnt = (tagged_data_cnt == integer_cnt);
 
 	 assign end_data_cnt = end_tagged_cnt | end_normal_data_cnt;
 

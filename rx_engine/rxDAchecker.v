@@ -21,7 +21,10 @@
 
 
 
-module rxDAchecker(local_invalid, broad_valid, multi_valid, MAC_Addr, da_addr);
+
+module rxDAchecker(rxclk,reset,local_invalid, broad_valid, multi_valid, MAC_Addr, da_addr);
+	 input  rxclk;
+	 input  reset;
 
     output local_invalid;
 	 output broad_valid;
@@ -32,13 +35,24 @@ module rxDAchecker(local_invalid, broad_valid, multi_valid, MAC_Addr, da_addr);
 
 	 parameter Multicast = 48'h0180C2000001;
 	 parameter Broadcast = 48'hffffffffffff; 
+	 parameter TP = 1;
+    
+	 reg multi_valid;
+	 reg broad_valid;
+	 reg local_valid;
+    always @(posedge rxclk or posedge reset) begin
+	       if (reset) begin
+			    multi_valid <=#TP 0;
+				 broad_valid <=#TP 0;
+				 local_valid <=#TP 0;
+			 end
+			 else begin
+			    multi_valid <=#TP (da_addr==Multicast);
+				 broad_valid <=#TP (da_addr==Broadcast);
+				 local_valid <=#TP (da_addr==MAC_Addr);
+			 end
+	 end
 
-	 // check individual MAC address
-	 wire broad_valid_1;
-
-	 assign multi_valid   = (da_addr==Multicast);
-	 assign broad_valid_1 = (da_addr[7:0]== Broadcast[7:0]);
-	 assign broad_valid   = broad_valid_1 &(da_addr[47:8]==Broadcast[47:8]);
-	 assign local_invalid = da_addr^MAC_Addr;
+	 assign local_invalid = ~local_valid & ~multi_valid & ~broad_valid;
 
 endmodule

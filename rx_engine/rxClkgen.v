@@ -28,8 +28,8 @@ module rxClkgen(rxclk_in, reset, rxclk, rxclk_180, rxclk_2x, locked);
 
 	 dcm0 rx_dcm(.CLKIN_IN(rxclk_in), 
                 .RST_IN(reset), 
-                .CLKIN_IBUFG_OUT(rxclk), 
-                .CLK0_OUT(), 	
+                .CLKIN_IBUFG_OUT(), 
+                .CLK0_OUT(rxclk), 	
 					 .CLK2X_OUT(rxclk_2x), 
                 .CLK180_OUT(rxclk_180), 
                 .LOCKED_OUT(locked)

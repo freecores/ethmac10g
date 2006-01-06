@@ -40,18 +40,19 @@
 `define MAX_VALID_LENGTH 16'h05DC
 
 
-module rxLenTypChecker(lt_data, tagged_len, jumbo_enable, tagged_frame, pause_frame, small_frame,
-                       len_invalid, integer_cnt, small_integer_cnt, bits_more, inband_fcs,
+module rxLenTypChecker(rxclk, reset, lt_data, tagged_len, jumbo_enable, tagged_frame, pause_frame, small_frame,
+                       len_invalid, integer_cnt, small_integer_cnt, bits_more, 
 							  small_bits_more, vlan_enable );
     	 
+	 input        rxclk;
+	 input        reset;
 	 input[15:0]  lt_data;	    //Length or Type field of a frame
 	 input[15:0]  tagged_len;   //Actual length carried with tagged frame  
     input        jumbo_enable; //Enable jumbo frame recieving
-	 input        inband_fcs;	 //In-band FCS
 	 input        vlan_enable;  //VLAN mode enable bit
 
 	 input        pause_frame;	 //Indicate that current frame is a pause frame (a kind of control frame)	
-	 output       small_frame; 
+	 input        small_frame; 
 	 output       len_invalid;	 //Indicate that current frame is not an valid frame
 
 	 output[12:0] integer_cnt;	 //number of 64bits DATA field contains
@@ -63,8 +64,7 @@ module rxLenTypChecker(lt_data, tagged_len, jumbo_enable, tagged_frame, pause_fr
 	 output[2:0]  small_bits_more; //number that is less than 64bits(unpadded data field) 
 
     wire[15:0]   current_len;
-	 wire[15:0]   current_cnt;
-	 wire         len_init;
+	 wire[12:0]   current_cnt;
 	 wire         small_frame;
 	 wire         tagged_frame;
 
@@ -74,21 +74,23 @@ module rxLenTypChecker(lt_data, tagged_len, jumbo_enable, tagged_frame, pause_fr
 
 	 assign current_cnt = current_len >> 3; //the number of 64bits data field has
 
-	 assign len_init = ~(|lt_data);
-
-	 assign padded_frame = ~(|current_len[15:6]) & (~current_len[5] | (current_len[5] & ~current_len[4])) & ~len_init;
-
-	 assign small_frame = padded_frame & ~inband_fcs;  //padded frame
-
-	 assign bits_more = padded_frame? 4 :current_len[2:0];	// bits that is not 64bits enough
+	 assign bits_more = small_frame? 4 :current_len[2:0];	// bits that is not 64bits enough
 
 	 assign small_bits_more = current_len[2:0];// for situation smaller than 64
 
-	 assign integer_cnt = padded_frame? 5 :current_cnt[12:0];
+	 assign integer_cnt = small_frame? 5 :current_cnt[12:0];
 
 	 assign small_integer_cnt = current_cnt[12:0];
 
-	 assign len_invalid = ((~jumbo_enable) & (current_len > `MAX_VALID_LENGTH) & ~(tagged_frame|pause_frame)) | (~vlan_enable & tagged_frame);
+	 reg len_invalid;
+	 always@(posedge rxclk or posedge reset) begin
+	       if (reset)
+			    len_invalid <=#TP 0;
+          else	
+			    len_invalid <=#TP ((~jumbo_enable) & (current_len > `MAX_VALID_LENGTH)) | (~vlan_enable & tagged_frame);
+	 end
+//	 assign len_invalid = ((~jumbo_enable) & (current_len > `MAX_VALID_LENGTH) & ~(tagged_frame|pause_frame)) | (~vlan_enable & tagged_frame);
+
 	 //not a large frame(except LT is type interpretion) when jumbo is not enabled, not a tagged frame when vlan is not enbaled
 
 	 ///////////////////////////////////////////
