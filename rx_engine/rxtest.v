@@ -201,10 +201,10 @@ module rxtest_v;
 			   i <= i+1;
 //				rxd64_in <=taggedvector1[i];
 //	      	rxc8_in <=taggedvector2[i];
-//				rxd64_in <=testvector1[i];
-//	      	rxc8_in <=testvector2[i];
-				rxd64_in <=smallvector1[i];
-	      	rxc8_in <=smallvector2[i];
+				rxd64_in <=testvector1[i];
+	      	rxc8_in <=testvector2[i];
+//				rxd64_in <=smallvector1[i];
+//	      	rxc8_in <=smallvector2[i];
 			end
 	end
 

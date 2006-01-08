@@ -18,13 +18,13 @@
 // Additional Comments:
 // 
 ////////////////////////////////////////////////////////////////////////////////
-module rxFIFOMgnt(rxclk, reset, rxd64, rxc_fifo, receiving_frame, recv_end, rx_data_valid, rx_data,
+module rxFIFOMgnt(rxclk, reset, rxd64_d2, rxc_fifo, receiving, recv_end, rx_data_valid, rx_data,
                   wait_crc_check);
     input rxclk;
     input reset;
-    input [63:0] rxd64;
+    input [63:0] rxd64_d2;
 	 input [7:0] rxc_fifo;
-	 input receiving_frame;
+	 input receiving;
 	 input recv_end;
 	 input wait_crc_check;
 
@@ -38,28 +38,29 @@ module rxFIFOMgnt(rxclk, reset, rxd64, rxc_fifo, receiving_frame, recv_end, rx_d
 	 wire fifo_rd_en;
 	 wire fifo_wr_en;
 
-	 reg receiving_frame_d1, wait_crc_check_d1;
-	 reg [7:0] rxc_fifo_d1;
+	 reg receiving_d1, receiving_d2, wait_crc_check_d1;
 
 	 assign fifo_rd_en = ~(rxfifo_empty | wait_crc_check_d1);
-	 assign fifo_wr_en = receiving_frame_d1;
+	 assign fifo_wr_en = receiving_d2 & receiving_d1;
 	 
 	 always @(posedge rxclk or posedge reset)begin
 	       if (reset) begin
-			    receiving_frame_d1 <=#TP 0;
-				 rxc_fifo_d1 <=#TP 0;
+			    receiving_d1 <=#TP 0;
+//				 rxc_fifo_d1 <=#TP 0;
+             receiving_d2 <=#TP 0;
 				 wait_crc_check_d1 <=#TP 0;
 			 end
 			 else	begin
-			    receiving_frame_d1 <=#TP receiving_frame;
-				 rxc_fifo_d1 <=#TP rxc_fifo;
+			    receiving_d1 <=#TP receiving;
+				 receiving_d2 <=#TP receiving_d1;
+//				 rxc_fifo_d1 <=#TP rxc_fifo;
 				 wait_crc_check_d1 <=#TP wait_crc_check;
 			 end
 	 end
 	 
 	 rxdatafifo rxdatain(.clk(rxclk),
 	                  .sinit(reset),
-	                  .din(rxd64),
+	                  .din(rxd64_d2),
 	       				.wr_en(fifo_wr_en),
                    	.rd_en(fifo_rd_en),
 	                  .dout(rx_data),
@@ -68,7 +69,7 @@ module rxFIFOMgnt(rxclk, reset, rxd64, rxc_fifo, receiving_frame, recv_end, rx_d
 
 	 rxcntrlfifo rxcntrlin(.clk(rxclk),
 	                  .sinit(reset),
-	                  .din(rxc_fifo_d1),
+	                  .din(rxc_fifo),
 	       				.wr_en(fifo_wr_en),
                    	.rd_en(fifo_rd_en),
 	                  .dout(rx_data_valid),

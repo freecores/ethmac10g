@@ -85,19 +85,21 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 	 // Input Registers
 	 //////////////////////////////////////////
 	 
-	 reg [63:0]rxd64,rxd64_d1;
+	 reg [63:0]rxd64,rxd64_d1,rxd64_d2;
 	 reg [7:0]rxc8;
 	 reg [52:0]cfgRxRegData;
 	 always@(posedge rxclk or posedge reset) begin
 	       if (reset)	begin
 			    rxd64 <=#TP 0;
 				 rxd64_d1<=#TP 0;
+				 rxd64_d2<=#TP 0;	 
 				 rxc8  <=#TP 0;
 				 cfgRxRegData <=#TP 0;
 			 end
 			 else begin
 			    rxd64 <=#TP rxd64_in;
 				 rxd64_d1<=#TP rxd64;
+				 rxd64_d2<=#TP rxd64_d1;
 				 rxc8  <=#TP rxc8_in;
 				 cfgRxRegData <=#TP cfgRxRegData_in;
 			 end
@@ -150,7 +152,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 	 // Upper Interface with client
 	 ///////////////////////////////////////
 
-	 rxFIFOMgnt upperinterface(.rxclk(rxclk), .reset(reset), .rxd64(rxd64_d1), .rxc_fifo(rxc_fifo), .receiving_frame(receiving_frame), 
+	 rxFIFOMgnt upperinterface(.rxclk(rxclk), .reset(reset), .rxd64_d2(rxd64_d2), .rxc_fifo(rxc_fifo), .receiving(receiving), 
 	                           .recv_end(recv_end), .rx_data_valid(rx_data_valid), .wait_crc_check(wait_crc_check),
 										.rx_data(rx_data));
 

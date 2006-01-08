@@ -82,7 +82,7 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 	 // Get Control Characters
 	 //////////////////////////////////////////
 	 wire get_sfd;
-	 wire[7:0] get_t_chk;
+	 reg[7:0] get_t_chk;
 	 reg get_error_code;
 	 reg[7:0] get_e_chk;
 
@@ -90,17 +90,32 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 	 assign get_sfd = (rxd64[63:56] ==`START) & (rxd64[7:0]== `SFD) & (rxc8 == 8'h80);
 
  	 //2. EFD
-	 assign get_t_chk[0] = rxc8[0] & (rxd64[7:0] == `TERMINATE );
-	 assign get_t_chk[1] = rxc8[1] & (rxd64[15:8] == `TERMINATE );
-	 assign get_t_chk[2] = rxc8[2] & (rxd64[23:16] == `TERMINATE );
-	 assign get_t_chk[3] = rxc8[3] & (rxd64[31:24] == `TERMINATE );
-	 assign get_t_chk[4] = rxc8[4] & (rxd64[39:32] == `TERMINATE );		
-	 assign get_t_chk[5] = rxc8[5] & (rxd64[47:40] == `TERMINATE );
-	 assign get_t_chk[6] = rxc8[6] & (rxd64[55:48] == `TERMINATE );
-	 assign get_t_chk[7] = rxc8[7] & (rxd64[63:56] == `TERMINATE );
-
+	 
+    always@(posedge rxclk or posedge reset) begin
+	       if (reset)
+			    get_t_chk <=#TP 0;
+			 else begin
+				 get_t_chk[0] <=#TP rxc8[0] & (rxd64[7:0]  ==`TERMINATE); 
+			    get_t_chk[1] <=#TP rxc8[1] & (rxd64[15:8] ==`TERMINATE);
+             get_t_chk[2] <=#TP rxc8[2] & (rxd64[23:16]==`TERMINATE);
+             get_t_chk[3] <=#TP rxc8[3] & (rxd64[31:24]==`TERMINATE);
+             get_t_chk[4] <=#TP rxc8[4] & (rxd64[39:32]==`TERMINATE);		
+             get_t_chk[5] <=#TP rxc8[5] & (rxd64[47:40]==`TERMINATE);
+             get_t_chk[6] <=#TP rxc8[6] & (rxd64[55:48]==`TERMINATE);
+             get_t_chk[7] <=#TP rxc8[7] & (rxd64[63:56]==`TERMINATE);
+			 end
+	 end
+//	 assign get_t_chk[0] = rxc8[0] & (rxd64[7:0] == `TERMINATE );
+//	 assign get_t_chk[1] = rxc8[1] & (rxd64[15:8] == `TERMINATE );
+//	 assign get_t_chk[2] = rxc8[2] & (rxd64[23:16] == `TERMINATE );
+//	 assign get_t_chk[3] = rxc8[3] & (rxd64[31:24] == `TERMINATE );
+//	 assign get_t_chk[4] = rxc8[4] & (rxd64[39:32] == `TERMINATE );		
+//	 assign get_t_chk[5] = rxc8[5] & (rxd64[47:40] == `TERMINATE );
+//	 assign get_t_chk[6] = rxc8[6] & (rxd64[55:48] == `TERMINATE );
+//	 assign get_t_chk[7] = rxc8[7] & (rxd64[63:56] == `TERMINATE );
+//
 	 //3. Error Character
-    always@(posedge rxclk_180 or posedge reset) begin
+    always@(posedge rxclk or posedge reset) begin
 	       if (reset)
 			    get_e_chk <=#TP 0;
 			 else begin
@@ -115,7 +130,7 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 			 end
 	 end
 	 
-	 always@(posedge rxclk_180 or posedge reset) begin
+	 always@(posedge rxclk or posedge reset) begin
 	       if (reset) 
 			    get_error_code <=#TP 0;
           else
@@ -127,7 +142,7 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 	 //////////////////////////////////////
 
 	 reg[47:0] da_addr; 
-	 always@(posedge rxclk_180 or posedge reset)begin
+	 always@(posedge rxclk or posedge reset)begin
        if (reset) 
 	       da_addr <=#TP 0;
    	 else if (start_da) 
@@ -141,11 +156,11 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 	//////////////////////////////////////
 
 	 reg[15:0] lt_data; 
-	 always@(posedge rxclk_180 or posedge reset)begin
+	 always@(posedge rxclk or posedge reset)begin
        if (reset) 
 	       lt_data <=#TP 0;
    	 else if (start_lt) 
-	       lt_data <=#TP rxd64[31:16] - 2;
+	       lt_data <=#TP rxd64[31:16]-2;
        else if(~receiving_frame)
 		    lt_data <=#TP 16'h0578;
 		 else
@@ -153,7 +168,7 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
     end
 
 	 reg tagged_frame;
-	 always@(posedge rxclk_180 or posedge reset) begin
+	 always@(posedge rxclk or posedge reset) begin
 	    if (reset)
 		    tagged_frame <=#TP 1'b0;
        else	if (start_lt)
@@ -165,7 +180,7 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 	 end
 
 	 reg small_frame;
-	 always@(posedge rxclk_180 or posedge reset) begin
+	 always@(posedge rxclk or posedge reset) begin
 	    if (reset)
 		    small_frame <=#TP 1'b0;
        else	if (start_lt)
@@ -177,7 +192,7 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 	 end
 	 
 	 reg pause_frame;
-	 always@(posedge rxclk_180 or posedge reset) begin
+	 always@(posedge rxclk or posedge reset) begin
 	    if (reset)
 		    pause_frame <=#TP 1'b0;
        else	if (start_lt)
@@ -194,12 +209,12 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
   ///////////////////////////////////////
 
 	 reg tagged_frame_d1;
-	 always@(posedge rxclk_180) begin
+	 always@(posedge rxclk) begin
 	        tagged_frame_d1<=#TP tagged_frame;
 	 end
 
 	 reg[15:0] tagged_len;
-	 always@(posedge rxclk_180 or posedge reset) begin
+	 always@(posedge rxclk or posedge reset) begin
 	        if (reset)
                tagged_len <=#TP 0;
 			  else if(~tagged_frame_d1 & tagged_frame)
@@ -214,11 +229,11 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
   // Get FCS Field and Part of DATA
   ////////////////////////////////////////
 	 
-	 wire [7:0]special;
-
-    reg[31:0]  crc_code;	
+	 wire[7:0]  special;		
 	 wire       end_fcs;
-	 wire[7:0]  crc_valid;
+
+    reg[31:0]  crc_code;
+	 reg[7:0]   crc_valid;
 	 reg        length_error; 
 	 reg        end_data_cnt_d1;
 
@@ -230,9 +245,19 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
  	 end
 
 	 assign special = `ALLONES >> bits_more;			 
-	 assign crc_valid = end_data_cnt? ~special: `ALLONES;
+//	 assign crc_valid = end_data_cnt? ~special: `ALLONES;
 	 assign end_fcs = end_data_cnt_d1;
 	 //timing constraint should be added here to make length_error be valid earlier than end_fcs
+
+	 always@(posedge rxclk or posedge reset) begin
+	       if (reset)
+			    crc_valid <=#TP 0;
+			 else	if (end_data_cnt)
+			    crc_valid <= ~special;
+			 else
+			    crc_valid <= `ALLONES;
+	 end
+
 	 always@(posedge rxclk or posedge reset) begin
 	       if (reset) begin
 			    length_error <=#TP 0;
@@ -263,7 +288,7 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 				    4: crc_code <=#TP rxd64[31:0];
 				    5: crc_code <=#TP {rxd64_d1[23:0],rxd64[63:56]};
 				    6: crc_code <=#TP {rxd64_d1[15:0],rxd64[55:40]};
-				    6: crc_code <=#TP {rxd64_d1[7:0],rxd64[39:24]};
+				    6: crc_code <=#TP {rxd64_d1[7:0],rxd64[39:16]};
              endcase
 	 end
 
@@ -291,13 +316,27 @@ module rxFrameDepart(rxclk, reset, rxclk_180, rxd64, rxc8, start_da, start_lt, t
 	 wire [7:0]rxc_pad;
 	 wire [7:0]rxc_end_data;
 	 wire [7:0]rxc_final[2:0];
-	 wire [7:0]rxc_fifo; //rxc send to fifo
+	 reg [7:0]rxc_fifo; //rxc send to fifo
 
 	 assign rxc_pad = ~(`ALLONES >> small_bits_more);
 	 assign rxc_end_data = ~special;
 
-	 assign rxc_final[1] = receiving? (end_data_cnt? rxc_end_data: `ALLONES): `ALLZEROS;
-	 assign rxc_final[2] = receiving? (end_small_cnt?rxc_pad: `ALLONES): `ALLZEROS;
-    assign rxc_fifo = inband_fcs? ~rxc8: (small_frame? rxc_final[2]: rxc_final[1]);
+//	 assign rxc_final[1] = receiving? (end_data_cnt? rxc_end_data: `ALLONES): `ALLZEROS;
+//	 assign rxc_final[2] = receiving? (end_small_cnt?rxc_pad: `ALLONES): `ALLZEROS;
+	 assign rxc_final[1] = end_data_cnt? rxc_end_data: `ALLONES;
+	 assign rxc_final[2] = end_small_cnt?rxc_pad: `ALLONES;
+
+	 always@(posedge rxclk or posedge reset) begin
+	       if(reset)
+			   rxc_fifo <=#TP 0;
+			 else if (inband_fcs)
+				rxc_fifo <=#TP ~rxc8;
+			 else if (~inband_fcs & small_frame)
+			   rxc_fifo <=#TP rxc_final[2];
+          else if (~inband_fcs & ~small_frame)
+			   rxc_fifo <=#TP rxc_final[1];
+	 end
+
+//    assign rxc_fifo = inband_fcs?~rxc8:(small_frame? rxc_final[2]: rxc_final[1]);
                           
 endmodule

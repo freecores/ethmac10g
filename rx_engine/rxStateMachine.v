@@ -148,7 +148,7 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, len_inv
              else
 				    end_small_cnt_d2 <= #TP end_small_cnt_d2;
 			 end
-	 end
+	 end																												
 
 	 assign start_da = rxstate[0];
 	 assign start_lt = rxstate[1];
@@ -156,7 +156,7 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, len_inv
 	 assign start_tagged_cnt = rxstate[2] & tagged_frame;
 	 assign receiving_data = rxstate[2] | rxstate[1] | rxstate[0]; // in DA,LT,DATA status
 	 assign receiving_frame = rxstate[2] | rxstate[1] | rxstate[0] | rxstate[3]; //in DA,LT,Data,FCS status
-	 assign receiving_small = start_da | start_lt | (rxstate[2] & ~end_small_cnt_d2);
+	 assign receiving_small = rxstate[0] | rxstate[1] | (rxstate[2] & ~end_small_cnt_d2);
 //	 assign receiving = inband_fcs? receiving_frame:(small_frame? receiving_small:receiving_data);
     wire recv_tmp;
 	 MUXCY recv1(.O(recv_tmp), .DI(receiving_data), .CI(receiving_small), .S(small_frame));
