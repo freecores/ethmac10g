@@ -37,7 +37,7 @@ always @(posedge CLK)
   begin
     if (RESET) begin
       //  CRC_FB = 1;
-        CRC_OUT = 0;
+        CRC_OUT = 32'h46af6449;
     end
     
     else if (START) begin 

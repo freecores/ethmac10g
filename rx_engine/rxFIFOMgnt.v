@@ -18,18 +18,18 @@
 // Additional Comments:
 // 
 ////////////////////////////////////////////////////////////////////////////////
-module rxFIFOMgnt(rxclk, reset, rxd64_d2, rxc_fifo, receiving, recv_end, rx_data_valid, rx_data,
-                  wait_crc_check);
+module rxFIFOMgnt(rxclk, reset, rxd64_d2, rxc_fifo, receiving, rx_data_valid, rx_data,
+                  wait_crc_check,receiving_d2);
     input rxclk;
     input reset;
     input [63:0] rxd64_d2;
 	 input [7:0] rxc_fifo;
 	 input receiving;
-	 input recv_end;
 	 input wait_crc_check;
 
 	 output[7:0] rx_data_valid;
 	 output[63:0] rx_data;
+	 output receiving_d2;
 
 	 parameter TP =1;
 
@@ -41,7 +41,7 @@ module rxFIFOMgnt(rxclk, reset, rxd64_d2, rxc_fifo, receiving, recv_end, rx_data
 	 reg receiving_d1, receiving_d2, wait_crc_check_d1;
 
 	 assign fifo_rd_en = ~(rxfifo_empty | wait_crc_check_d1);
-	 assign fifo_wr_en = receiving_d2 & receiving_d1;
+	 assign fifo_wr_en = receiving_d1;
 	 
 	 always @(posedge rxclk or posedge reset)begin
 	       if (reset) begin

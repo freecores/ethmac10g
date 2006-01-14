@@ -37,15 +37,15 @@ module CRC32_D8(DATA_IN, CLK, RESET, START, LOAD, CRC_IN, CRC_OUT);
 always @(posedge CLK)
   begin
     if (RESET) begin
-        CRC_OUT = 0;
+        CRC_OUT <= 32'h46AF6449;
     end
 
     else if (LOAD) begin
-        CRC_OUT = CRC_IN;
+        CRC_OUT <= CRC_IN;
     end   
     
     else if (START) begin
-        CRC_OUT = nextCRC32_D8(DATA_IN, CRC_OUT);
+        CRC_OUT <= nextCRC32_D8(DATA_IN, CRC_OUT);
     end 
     	
   end

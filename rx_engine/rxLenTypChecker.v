@@ -22,90 +22,70 @@
 //	4. >9k+18, = 0x8100: Type, Tagged frame
 // 5. >9k+18, = 0x8808: Type, pause frame
 
-// |<------------------------------ Data Field ---------------------------->|
-// |<------------- True Data Field --------------> <-----Padded bits------->|
-// |____________________________|_________________|
-// |	    					        |			        |
-// |	 small_integer_cnt * 64   | small_bits_more |  
-// |____________________________|_________________|____
-// |___________________________________________________|_____________________
-// |		                  			                   |			  	          |
-// |	             integer_cnt * 64                    |       bits_more    |
-// |___________________________________________________|____________________|
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
 
-`define MAX_VALID_LENGTH 16'h05DC
+`define MAX_VALID_LENGTH 12'h0be
+`define MAX_VALID_BITS_MORE 3'h6
+`define MAX_TAG_LENGTH 12'h0bf
+`define MAX_TAG_BITS_MORE 3'h2
+`define MAX_JUMBO_LENGTH 12'h466
+
+`define MIN_VALID_LENGTH 8'h08;
 
 
-module rxLenTypChecker(rxclk, reset, lt_data, tagged_len, jumbo_enable, tagged_frame, pause_frame, small_frame,
-                       len_invalid, integer_cnt, small_integer_cnt, bits_more, 
-							  small_bits_more, vlan_enable );
+module rxLenTypChecker(rxclk, reset, get_terminator, terminator_location, jumbo_enable, tagged_frame, 
+       frame_cnt, vlan_enable,length_error);
     	 
-	 input        rxclk;
-	 input        reset;
-	 input[15:0]  lt_data;	    //Length or Type field of a frame
-	 input[15:0]  tagged_len;   //Actual length carried with tagged frame  
-    input        jumbo_enable; //Enable jumbo frame recieving
-	 input        vlan_enable;  //VLAN mode enable bit
+	 input  rxclk;
+	 input  reset;
+    input  jumbo_enable; //Enable jumbo frame recieving
+	 input  vlan_enable;  //VLAN mode enable bit
+    input  tagged_frame;	 //number of 64bits DATA field of tagged frame contains
+	 input  get_terminator;
+	 input[11:0] frame_cnt; 
+	 input[2:0] terminator_location;
 
-	 input        pause_frame;	 //Indicate that current frame is a pause frame (a kind of control frame)	
-	 input        small_frame; 
-	 output       len_invalid;	 //Indicate that current frame is not an valid frame
-
-	 output[12:0] integer_cnt;	 //number of 64bits DATA field contains
-	 output[12:0] small_integer_cnt;	//number of 64bits real DATA field contains(without pad part)
-	 
-	 input        tagged_frame;	 //number of 64bits DATA field of tagged frame contains
-	 
-	 output[2:0]  bits_more;	 //number that is less than 64bits(whole data field)
-	 output[2:0]  small_bits_more; //number that is less than 64bits(unpadded data field) 
-
-    wire[15:0]   current_len;
-	 wire[12:0]   current_cnt;
-	 wire         small_frame;
-	 wire         tagged_frame;
+	 output length_error;
 
 	 parameter TP =1 ;
 
-	 assign current_len = tagged_frame?tagged_len:lt_data;	 //Data field length
-
-	 assign current_cnt = current_len >> 3; //the number of 64bits data field has
-
-	 assign bits_more = small_frame? 4 :current_len[2:0];	// bits that is not 64bits enough
-
-	 assign small_bits_more = current_len[2:0];// for situation smaller than 64
-
-	 assign integer_cnt = small_frame? 5 :current_cnt[12:0];
-
-	 assign small_integer_cnt = current_cnt[12:0];
-
-	 reg len_invalid;
-	 always@(posedge rxclk or posedge reset) begin
-	       if (reset)
-			    len_invalid <=#TP 0;
-          else	
-			    len_invalid <=#TP ((~jumbo_enable) & (current_len > `MAX_VALID_LENGTH)) | (~vlan_enable & tagged_frame);
+	 reg [2:0]location_reg;
+	 always@(posedge rxclk or posedge reset)begin
+	       if (reset) 
+			    location_reg <=#TP 0;
+			 else if(get_terminator)
+			    location_reg <=#TP terminator_location;
+			 else 
+			    location_reg <=#TP location_reg;
 	 end
-//	 assign len_invalid = ((~jumbo_enable) & (current_len > `MAX_VALID_LENGTH) & ~(tagged_frame|pause_frame)) | (~vlan_enable & tagged_frame);
 
-	 //not a large frame(except LT is type interpretion) when jumbo is not enabled, not a tagged frame when vlan is not enbaled
-
-	 ///////////////////////////////////////////
-	 // Signals used for statistics
-	 ///////////////////////////////////////////
+	 reg length_error;
+	 always@(posedge rxclk or posedge reset)begin
+	       if(reset) 
+			    length_error <=#TP 1'b0;
+			 else if(tagged_frame & vlan_enable) begin
+			     if ((frame_cnt == `MAX_TAG_LENGTH) & (location_reg > `MAX_TAG_BITS_MORE))
+				     length_error <=#TP 1'b1;
+				  else if ((frame_cnt > `MAX_TAG_LENGTH) & ~jumbo_enable)
+				     length_error <=#TP 1'b1;
+              else if(frame_cnt > `MAX_JUMBO_LENGTH)
+				     length_error <=#TP 1'b1;
+				  else
+				     length_error <=#TP 1'b0;
+			 end
+			 else begin
+				  if ((frame_cnt == `MAX_VALID_LENGTH) & (location_reg > `MAX_VALID_BITS_MORE))
+			        length_error <=#TP 1'b1;
+			     else if((frame_cnt > `MAX_VALID_LENGTH) & ~jumbo_enable) 
+			        length_error <=#TP 1'b1;
+              else if(frame_cnt > `MAX_JUMBO_LENGTH)
+				     length_error <=#TP 1'b1;
+              else
+			        length_error <=#TP 1'b0;
+			 end
+	 end
+			    
 	 
-//	 assign len_small_than_127 = lt_data < 110;
-//
-//	 assign len_small_than_255 = lt_data < 238;
-//	 
-//    assign len_small_than_511 = lt_data < 406;
-//
-//	 assign length_65_127 = ~padded_frame & len_small_than_127;
-//
-//	 assign length_128_255 = ~len_small_than_127 & len_small_than_255;
-//
-//	 assign length_256_511 = ~len_small_than_255 & len_small_than_511;
 endmodule

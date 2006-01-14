@@ -18,11 +18,10 @@
 // Additional Comments:
 // 
 ////////////////////////////////////////////////////////////////////////////////
-module rxClkgen(rxclk_in, reset, rxclk, rxclk_180, rxclk_2x, locked);
+module rxClkgen(rxclk_in, reset, rxclk, rxclk_2x, locked);
     input rxclk_in;
     input reset;
 	 output rxclk;
-    output rxclk_180;
 	 output rxclk_2x;
 	 output locked;
 
@@ -31,7 +30,7 @@ module rxClkgen(rxclk_in, reset, rxclk, rxclk_180, rxclk_2x, locked);
                 .CLKIN_IBUFG_OUT(), 
                 .CLK0_OUT(rxclk), 	
 					 .CLK2X_OUT(rxclk_2x), 
-                .CLK180_OUT(rxclk_180), 
+                .CLK180_OUT(), 
                 .LOCKED_OUT(locked)
 					 );
 
