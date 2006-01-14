@@ -30,7 +30,6 @@ module rxClkgen(rxclk_in, reset, rxclk, rxclk_2x, locked);
                 .CLKIN_IBUFG_OUT(), 
                 .CLK0_OUT(rxclk), 	
 					 .CLK2X_OUT(rxclk_2x), 
-                .CLK180_OUT(), 
                 .LOCKED_OUT(locked)
 					 );
 
