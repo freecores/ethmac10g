@@ -39,7 +39,6 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 	 parameter TP =1;
 
     wire rxclk;
-	 wire rxclk_180;
 	 wire rxclk_2x;
 	 wire locked;
 	 wire reset_dcm;
@@ -137,7 +136,6 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 	 rxClkgen rxclk_gen(.rxclk_in(rxclk_in),
 	                    .reset(reset_dcm),
 							  .rxclk(rxclk), 
-							  .rxclk_180(rxclk_180),
 							  .rxclk_2x(rxclk_2x), 
 							  .locked(locked)
 							  );
