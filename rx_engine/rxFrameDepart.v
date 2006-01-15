@@ -19,11 +19,11 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////
 
-`define START      8'hfb
-`define TERMINATE  8'hfd  	
-`define SFD        8'b10101011
-`define SEQUENCE   8'h9c
-`define ERROR      8'hfe
+`define START      8'hdf
+`define TERMINATE  8'hbf 	
+`define SFD        8'b11010101
+`define SEQUENCE   8'h59
+`define ERROR      8'h7f
 `define ALLONES    8'hff
 `define ALLZEROS   8'h00
 `define BYTE_0     3'b000
@@ -35,13 +35,11 @@
 `define BYTE_6     3'b110
 `define BYTE_7     3'b111
 
-`define MINI_LENGTH 16h'002e
-
-`define TAG_SIGN   16'h8100
-`define PAUSE_SIGN 16'h8808
+`define TAG_SIGN   16'h1800
+`define PAUSE_SIGN 16'h1101
 
 module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame,pause_frame,
-                     inband_fcs, da_addr, lt_data, crc_code, get_sfd, get_error_code,
+                     inband_fcs, da_addr, lt_data, get_sfd, get_error_code,
 							rxc_fifo,rxd64_d1,rxd64_d2, get_terminator, terminator_location);
     input rxclk;
     input reset;
@@ -57,7 +55,6 @@ module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame
 	 output[7:0]  rxc_fifo;
 	 output[47:0] da_addr; //destination address won't be changed until start_da was changed again
 	 output[15:0] lt_data; //(Length/Type) field won't be changed until start_lt was changed again
-	 output[31:0] crc_code;
 	 output       tagged_frame;
 	 output       pause_frame;
 	 output       get_terminator;
@@ -97,43 +94,43 @@ module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame
 			 else begin
 			    if (rxc8[0] & (rxd64[7:0]  ==`TERMINATE)) begin
 				     get_terminator <=#TP 1'b1;
-					  terminator_location <=#TP 0;			 
-					  rxc_end_data <=#TP 8'b00001111;
+					  terminator_location <=#TP 7;			 
+					  rxc_end_data <=#TP 8'b11100000;
 			    end   
 			    else if (rxc8[1] & (rxd64[15:8] ==`TERMINATE)) begin
 				     get_terminator <=#TP 1'b1;
-					  terminator_location <=#TP 1;
-					  rxc_end_data <=#TP 8'b00011111;
+					  terminator_location <=#TP 6;
+					  rxc_end_data <=#TP 8'b11000000;
 				 end
 				 else if (rxc8[2] & (rxd64[23:16]==`TERMINATE)) begin
                  get_terminator <=#TP 1'b1;	
-					  terminator_location <=#TP 2;	
-					  rxc_end_data <=#TP 8'b00111111;
+					  terminator_location <=#TP 5;	
+					  rxc_end_data <=#TP 8'b10000000;
 				 end
 				 else if (rxc8[3] & (rxd64[31:24]==`TERMINATE)) begin
                  get_terminator <=#TP 1'b1;
-					  terminator_location <=#TP 3;					  			
-					  rxc_end_data <=#TP 8'b01111111;
-				 end
-             else if (rxc8[4] & (rxd64[39:32]==`TERMINATE)) begin
-				     get_terminator <=#TP 1'b1; 
 					  terminator_location <=#TP 4;					  			
 					  rxc_end_data <=#TP 8'b11111111;
 				 end
+             else if (rxc8[4] & (rxd64[39:32]==`TERMINATE)) begin
+				     get_terminator <=#TP 1'b1; 
+					  terminator_location <=#TP 3;					  			
+					  rxc_end_data <=#TP 8'b11111110;
+				 end
 				 else if (rxc8[5] & (rxd64[47:40]==`TERMINATE)) begin		
                  get_terminator <=#TP 1'b1; 
-					  terminator_location <=#TP 5;
-					  rxc_end_data <=#TP 8'b00000111;
+					  terminator_location <=#TP 2;
+					  rxc_end_data <=#TP 8'b11111100;
 				 end
 				 else if (rxc8[6] & (rxd64[55:48]==`TERMINATE)) begin
                  get_terminator <=#TP 1'b1;	
-					  terminator_location <=#TP 6; 
-					  rxc_end_data <=#TP 8'b00000011;
+					  terminator_location <=#TP 1; 
+					  rxc_end_data <=#TP 8'b11111000;
 				 end
 				 else if (rxc8[7] & (rxd64[63:56]==`TERMINATE))	begin
                  get_terminator <=#TP 1'b1;	
-					  terminator_location <=#TP 7;
-					  rxc_end_data <=#TP 8'b00000001;
+					  terminator_location <=#TP 0;
+					  rxc_end_data <=#TP 8'b11110000;
 				 end
 				 else	begin
 				     get_terminator <=#TP 1'b0;
@@ -142,40 +139,6 @@ module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame
 				 end
 			 end
 	 end
-	 always@(posedge rxclk or posedge reset) begin
-	       if(reset) begin
-				 crc_code <=#TP 0;
-			 end
-			 else
-			    case (terminator_location)
-				     3'h0: begin
-								crc_code <=#TP rxd64_d2[63:32];
-					  end
-	   			  3'h1: begin	 
-					         crc_code <=#TP {rxd64_d2[63:40],rxd64_d1[7:0]};	
-					  end
-					  3'h2: begin    
-					         crc_code <=#TP {rxd64_d2[63:48],rxd64_d1[15:0]};
-					  end	
-					  3'h3: begin
-								crc_code <=#TP {rxd64_d2[63:56],rxd64_d1[23:0]};
-					  end
-					  3'h4: begin					
-								crc_code <=#TP {rxd64_d1[31:0]};						
-					  end
-					  3'h5: begin					
-								crc_code <=#TP {rxd64_d1[39:8]};
-					  end
-					  3'h6: begin						
-								crc_code <=#TP {rxd64_d1[47:16]};
-					  end
-					  3'h7: begin					
-								crc_code <=#TP {rxd64_d1[55:24]};
-					  end
-				 endcase
-     end
-
-					         
 					         
 	 //3. Error Character
     always@(posedge rxclk or posedge reset) begin
@@ -209,7 +172,7 @@ module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame
        if (reset) 
 	       da_addr <=#TP 0;
    	 else if (start_da) 
-	       da_addr <=#TP rxd64_d1[47:0];
+	       da_addr <=#TP rxd64_d1[63:16];
 		 else	
 		    da_addr <=#TP da_addr;
     end
@@ -262,41 +225,15 @@ module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame
   // Get FCS Field and Part of DATA
   ////////////////////////////////////////
 
-    reg[31:0]  crc_code;
-
   /////////////////////////////////////////////////////////////////////////////////
   //                       Generate proper rxc to FIFO									//
   /////////////////////////////////////////////////////////////////////////////////
 
-  // FCS is provided by client, inband_fcs is valid   
-  //    receiving            end_data_cnt		            	end_fcs
-  // frame: |<------ Data ------>|<-- bits_more -->|<-- FCS -->|<--------
-  // rxc  :	|<------------------- all_one -------------------->|<--------all_zero
-  //                             |<--- 8bits, with 1s & 0s --->|
-
-  // FCS is provided by logic, inband_fcs is invalid
-  //	  receiving            end_data_cnt                   end_fcs
-  // frame: |<------ Data ------>|<-- bits_more -->|<-- FCS -->|
-  // rxc  : |<-------------- all_one ------------->|<----- all_zero
-  //										|<-- 8bits, with 1s & 0s --->|
-
-  //    receiving          end_small_cnt													end_fcs
-  // frame: |<------ Data ------>|<-- small_bits_more -->|<-- PAD -->|<-- FCS -->|
-  // rxc  : |<----------------- all_one ---------------->|<----- all_zero
-  //										|<-------- 1s --------->|<----- 0s 
 	 wire [7:0]rxc_final;
 	 wire [7:0]rxc_fifo; //rxc send to fifo
 
 
 	 assign rxc_final = get_terminator? rxc_end_data: `ALLONES;
 	 assign rxc_fifo = inband_fcs? ~rxc8:rxc_final;
-
-//	 always@(posedge rxclk or posedge reset) begin
-//	       if(reset)
-//			   rxc_fifo <=#TP 0;
-//			 else if (inband_fcs)
-//				rxc_fifo <=#TP ~rxc8;
-//          else if (~inband_fcs)
-//			   rxc_fifo <=#TP rxc_final;
-//	 end            
+        
 endmodule

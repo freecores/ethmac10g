@@ -38,7 +38,7 @@ module rxFIFOMgnt(rxclk, reset, rxd64_d2, rxc_fifo, receiving, rx_data_valid, rx
 	 wire fifo_rd_en;
 	 wire fifo_wr_en;
 
-	 reg receiving_d1, receiving_d2, wait_crc_check_d1;
+	 reg receiving_d1, receiving_d2,wait_crc_check_d1;
 
 	 assign fifo_rd_en = ~(rxfifo_empty | wait_crc_check_d1);
 	 assign fifo_wr_en = receiving_d1;
@@ -46,14 +46,12 @@ module rxFIFOMgnt(rxclk, reset, rxd64_d2, rxc_fifo, receiving, rx_data_valid, rx
 	 always @(posedge rxclk or posedge reset)begin
 	       if (reset) begin
 			    receiving_d1 <=#TP 0;
-//				 rxc_fifo_d1 <=#TP 0;
-             receiving_d2 <=#TP 0;
+				 receiving_d2 <=#TP 0;
 				 wait_crc_check_d1 <=#TP 0;
 			 end
 			 else	begin
 			    receiving_d1 <=#TP receiving;
 				 receiving_d2 <=#TP receiving_d1;
-//				 rxc_fifo_d1 <=#TP rxc_fifo;
 				 wait_crc_check_d1 <=#TP wait_crc_check;
 			 end
 	 end

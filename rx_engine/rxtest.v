@@ -89,10 +89,38 @@ module rxtest_v;
 	wire [63:0]taggedvector1[15:0];
 	wire [7:0] taggedvector2[15:0];
 
+	wire [63:0] trueframe1[10:0];
+	wire [7:0] trueframe2[10:0];
+	
+	assign trueframe1[0] = 64'h0707070707070707;	
+	assign trueframe1[1] = 64'hdf555555555555d5;
+	assign trueframe1[2] = 64'hffffffffffff1e60;//601effffffffffff;//
+	assign trueframe1[3] = 64'he89c0c2310600080;//80006010230c9ce8;
+	assign trueframe1[4] = 64'h1000602000801e60;//601e800020600010;
+	assign trueframe1[5] = 64'he89c0c234bb2c0d1;//d1c0b24b230c9ce8;//;
+	assign trueframe1[6] = 64'h0000000000004bb2;//b24b000000000000;//
+	assign trueframe1[7] = 64'h40c9040404040404;//040404040404c940;//
+	assign trueframe1[8] = 64'h0404040404040404;//0404040404040404;//
+	assign trueframe1[9] = 64'h040404042ba00ee5;//d40570a704040404;//
+	assign trueframe1[10] = 64'h01bf070707070707;
+
+	assign trueframe2[0] = 8'hff;
+	assign trueframe2[1] = 8'h80;
+	assign trueframe2[2] = 8'h00;
+	assign trueframe2[3] = 8'h00;
+	assign trueframe2[4] = 8'h00;
+	assign trueframe2[5] = 8'h00;
+	assign trueframe2[6] = 8'h00;
+	assign trueframe2[7] = 8'h00;
+	assign trueframe2[8] = 8'h00;
+	assign trueframe2[9] = 8'h00;
+	assign trueframe2[10] = 8'h7f;
+
+	 
 
 
 	assign testvector1[0] = 64'h0707070707070707;
-	assign testvector1[1] = 64'hfbaaaaaaaaaaaaab;
+	assign testvector1[1] = 64'hdf555555555555d5;
 	assign testvector1[2] = 64'h150000c09fe22972;
 	assign testvector1[3] = 64'h9889004f0024ac34; 
 // assign testvector1[3] = 64'h0024ac3400639889; //length error frame
@@ -105,8 +133,8 @@ module rxtest_v;
 	assign testvector1[10] = 64'h5432109876543210;
 	assign testvector1[11] = 64'h5432109876543210;
 	assign testvector1[12] = 64'h5432109876543210;
-	assign testvector1[13] = 64'h5555109876543210;
-	assign testvector1[14] = 64'h0707070707fd5555;
+	assign testvector1[13] = 64'h5555555576543210;
+	assign testvector1[14] = 64'h0707bf5555555555;
 	assign testvector1[15] = 64'h0707070707070707;	 
 	assign testvector2[0] = 8'hff;
 	assign testvector2[1] = 8'h80;
@@ -122,7 +150,7 @@ module rxtest_v;
 	assign testvector2[11] = 8'h00;
 	assign testvector2[12] = 8'h00;
 	assign testvector2[13] = 8'h00;
-	assign testvector2[14] = 8'hfc;
+	assign testvector2[14] = 8'he0;
 	assign testvector2[15] = 8'hff;
 
 	assign smallvector1[0] = 64'h0707070707070707;
@@ -201,8 +229,10 @@ module rxtest_v;
 			   i <= i+1;
 //				rxd64_in <=taggedvector1[i];
 //	      	rxc8_in <=taggedvector2[i];
-				rxd64_in <=testvector1[i];
-	      	rxc8_in <=testvector2[i];
+//				rxd64_in <=testvector1[i];
+//	      	rxc8_in <=testvector2[i];
+				rxd64_in <=trueframe1[i];
+	      	rxc8_in <=trueframe2[i];
 //				rxd64_in <=smallvector1[i];
 //	      	rxc8_in <=smallvector2[i];
 			end

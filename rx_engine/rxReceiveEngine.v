@@ -57,12 +57,12 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 	 wire [47:0] da_addr;
 	 wire [15:0] lt_data;
 	 wire [11:0] frame_cnt;
-	 wire [31:0] crc_code;
 	 wire [7:0]  rxc_fifo;
 	 wire [2:0]  terminator_location;
 	 wire length_error;
 	 wire get_sfd,get_error_code,get_terminator;
 	 wire receiving;
+	 wire receiving_d2;
 
 	 wire local_invalid;
 	 wire broad_valid;
@@ -154,7 +154,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 
 	 rxFrameDepart frame_spliter(.rxclk(rxclk), .reset(reset), .rxd64(rxd64), .rxc8(rxc8), .start_da(start_da), .start_lt(start_lt), 
 	                             .tagged_frame(tagged_frame), .pause_frame(pause_frame),.inband_fcs(inband_fcs),.da_addr(da_addr), 
-										  .lt_data(lt_data), .crc_code(crc_code), .get_sfd(get_sfd), .get_error_code(get_error_code),.rxc_fifo(rxc_fifo),
+										  .lt_data(lt_data), .get_sfd(get_sfd), .get_error_code(get_error_code),.rxc_fifo(rxc_fifo),
 							           .rxd64_d1(rxd64_d1),.rxd64_d2(rxd64_d2), .get_terminator(get_terminator), .terminator_location(terminator_location)
 										 );
 
@@ -197,7 +197,8 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 	 /////////////////////////////////////
 	 // CRC Check module
 	 /////////////////////////////////////
-	 rxCRC crcmodule(.rxclk(rxclk), .reset(reset), .receiving_d2(receiving_d2), .rxd64_d2(rxd64_d2), .get_terminator(get_terminator), .crc_code(crc_code),
-	                 .crc_check_invalid(crc_check_invalid), .crc_check_valid(crc_check_valid), .terminator_location(terminator_location));
+	 rxCRC crcmodule(.rxclk(rxclk), .reset(reset), .receiving_d2(receiving_d2), .get_terminator(get_terminator),.rxd64_d2(rxd64_d2),
+	                 .crc_check_invalid(crc_check_invalid), .crc_check_valid(crc_check_valid), .terminator_location(terminator_location),
+						  .wait_crc_check(wait_crc_check));
 //					   
 endmodule

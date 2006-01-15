@@ -8,7 +8,7 @@
 // \   \   \/     Version : 7.1i
 //  \   \         Application : 
 //  /   /         Filename : dcm0.v
-// /___/   /\     Timestamp : 01/08/2006 09:56:35
+// /___/   /\     Timestamp : 01/14/2006 14:59:37
 // \   \  /  \ 
 //  \___\/\___\ 
 //
@@ -25,7 +25,6 @@ module dcm0(CLKIN_IN,
             CLKIN_IBUFG_OUT, 
             CLK0_OUT, 
             CLK2X_OUT, 
-            CLK180_OUT, 
             LOCKED_OUT);
 
     input CLKIN_IN;
@@ -33,14 +32,12 @@ module dcm0(CLKIN_IN,
    output CLKIN_IBUFG_OUT;
    output CLK0_OUT;
    output CLK2X_OUT;
-   output CLK180_OUT;
    output LOCKED_OUT;
    
    wire CLKFB_IN;
    wire CLKIN_IBUFG;
    wire CLK0_BUF;
    wire CLK2X_BUF;
-   wire CLK180_BUF;
    wire GND;
    
    assign GND = 0;
@@ -52,8 +49,6 @@ module dcm0(CLKIN_IN,
                         .O(CLKFB_IN));
    BUFG CLK2X_BUFG_INST (.I(CLK2X_BUF), 
                          .O(CLK2X_OUT));
-   BUFG CLK180_BUFG_INST (.I(CLK180_BUF), 
-                          .O(CLK180_OUT));
    DCM DCM_INST (.CLKFB(CLKFB_IN), 
                  .CLKIN(CLKIN_IBUFG), 
                  .DSSEN(GND), 
@@ -68,7 +63,7 @@ module dcm0(CLKIN_IN,
                  .CLK2X(CLK2X_BUF), 
                  .CLK2X180(), 
                  .CLK90(), 
-                 .CLK180(CLK180_BUF), 
+                 .CLK180(), 
                  .CLK270(), 
                  .LOCKED(LOCKED_OUT), 
                  .PSDONE(), 
@@ -78,7 +73,7 @@ module dcm0(CLKIN_IN,
    // synthesis attribute CLKFX_DIVIDE of DCM_INST is "1"
    // synthesis attribute CLKFX_MULTIPLY of DCM_INST is "4"
    // synthesis attribute CLKIN_DIVIDE_BY_2 of DCM_INST is "FALSE"
-   // synthesis attribute CLKIN_PERIOD of DCM_INST is "6.400000"
+   // synthesis attribute CLKIN_PERIOD of DCM_INST is "6.410260"
    // synthesis attribute CLKOUT_PHASE_SHIFT of DCM_INST is "NONE"
    // synthesis attribute DESKEW_ADJUST of DCM_INST is "SYSTEM_SYNCHRONOUS"
    // synthesis attribute DFS_FREQUENCY_MODE of DCM_INST is "LOW"
@@ -93,7 +88,7 @@ module dcm0(CLKIN_IN,
    defparam DCM_INST.CLKFX_DIVIDE = 1;
    defparam DCM_INST.CLKFX_MULTIPLY = 4;
    defparam DCM_INST.CLKIN_DIVIDE_BY_2 = "FALSE";
-   defparam DCM_INST.CLKIN_PERIOD = 6.400000;
+   defparam DCM_INST.CLKIN_PERIOD = 6.410260;
    defparam DCM_INST.CLKOUT_PHASE_SHIFT = "NONE";
    defparam DCM_INST.DESKEW_ADJUST = "SYSTEM_SYNCHRONOUS";
    defparam DCM_INST.DFS_FREQUENCY_MODE = "LOW";
