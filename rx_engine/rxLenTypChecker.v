@@ -32,11 +32,12 @@
 `define MAX_TAG_BITS_MORE 3'h2
 `define MAX_JUMBO_LENGTH 12'h466
 
-`define MIN_VALID_LENGTH 8'h08;
+`define MIN_VALID_LENGTH 8'h08
 
 
 module rxLenTypChecker(rxclk, reset, get_terminator, terminator_location, jumbo_enable, tagged_frame, 
-       frame_cnt, vlan_enable,length_error);
+       frame_cnt, vlan_enable,length_error,large_error, small_error, padded_frame, length_65_127, 
+		 length_128_255, length_256_511, length_512_1023, length_1024_max,jumbo_frame);
     	 
 	 input  rxclk;
 	 input  reset;
@@ -48,7 +49,16 @@ module rxLenTypChecker(rxclk, reset, get_terminator, terminator_location, jumbo_
 	 input[2:0] terminator_location;
 
 	 output length_error;
-
+	 output large_error;
+	 output small_error;
+	 output padded_frame;
+	 output length_65_127;
+	 output length_128_255;
+	 output length_256_511;
+	 output length_512_1023;
+	 output length_1024_max;
+	 output jumbo_frame;
+	 
 	 parameter TP =1 ;
 
 	 reg [2:0]location_reg;
@@ -61,31 +71,134 @@ module rxLenTypChecker(rxclk, reset, get_terminator, terminator_location, jumbo_
 			    location_reg <=#TP location_reg;
 	 end
 
-	 reg length_error;
+	 reg large_error;
 	 always@(posedge rxclk or posedge reset)begin
 	       if(reset) 
-			    length_error <=#TP 1'b0;
+			    large_error <=#TP 1'b0;
 			 else if(tagged_frame & vlan_enable) begin
 			     if ((frame_cnt == `MAX_TAG_LENGTH) & (location_reg > `MAX_TAG_BITS_MORE))
-				     length_error <=#TP 1'b1;
+				     large_error <=#TP 1'b1;
 				  else if ((frame_cnt > `MAX_TAG_LENGTH) & ~jumbo_enable)
-				     length_error <=#TP 1'b1;
+				     large_error <=#TP 1'b1;
               else if(frame_cnt > `MAX_JUMBO_LENGTH)
-				     length_error <=#TP 1'b1;
+				     large_error <=#TP 1'b1;
 				  else
-				     length_error <=#TP 1'b0;
+				     large_error <=#TP 1'b0;
 			 end
 			 else begin
 				  if ((frame_cnt == `MAX_VALID_LENGTH) & (location_reg > `MAX_VALID_BITS_MORE))
-			        length_error <=#TP 1'b1;
+			        large_error <=#TP 1'b1;
 			     else if((frame_cnt > `MAX_VALID_LENGTH) & ~jumbo_enable) 
-			        length_error <=#TP 1'b1;
+			        large_error <=#TP 1'b1;
               else if(frame_cnt > `MAX_JUMBO_LENGTH)
-				     length_error <=#TP 1'b1;
+				     large_error <=#TP 1'b1;
               else
-			        length_error <=#TP 1'b0;
+			        large_error <=#TP 1'b0;
 			 end
 	 end
-			    
+
+	 reg small_error;
+	 always@(posedge rxclk or posedge reset) begin
+	       if(reset)
+			   small_error <=#TP 0;
+			 else 
+			   small_error <=#TP get_terminator & (frame_cnt< `MIN_VALID_LENGTH);
+	 end
+
+ 	 wire length_error;
+	 assign length_error = small_error | large_error;
+			     
+	 /////////////////////////////////////////////////
+	 // Statistic signals
+	 /////////////////////////////////////////////////		    
+	 									  
+	 ///////////////////////////////////
+	 // 64byte frame received OK
+	 ///////////////////////////////////
+
+	 reg padded_frame;
+	 always@(posedge rxclk or posedge reset) begin
+	        if(reset)
+			    padded_frame <=#TP 0;
+			  else
+			    padded_frame <=#TP get_terminator & (frame_cnt==`MIN_VALID_LENGTH);
+	 end
+
+	 ///////////////////////////////////
+	 // 65-127 byte Frame Received OK
+	 ///////////////////////////////////
+
+	 reg length_65_127;
+	 always@(posedge rxclk or posedge reset) begin
+	        if(reset)
+			    length_65_127 <=#TP 0;
+			  else
+			    length_65_127 <=#TP get_terminator & (frame_cnt>`MIN_VALID_LENGTH) & (frame_cnt <=127);
+	 end
+
+	 ///////////////////////////////////
+	 // 128-255 byte Frame Received OK
+	 ///////////////////////////////////
+
+	 reg length_128_255;
+	 always@(posedge rxclk or posedge reset) begin
+	        if(reset)
+			    length_128_255 <=#TP 0;
+			  else
+			    length_128_255 <=#TP get_terminator & (frame_cnt>128) & (frame_cnt <=255);
+	 end
+
+	 ///////////////////////////////////
+	 // 256-511 byte Frame Received OK
+	 ///////////////////////////////////
+
+	 reg length_256_511;
+	 always@(posedge rxclk or posedge reset) begin
+	        if(reset)
+			    length_256_511 <=#TP 0;
+			  else
+			    length_256_511 <=#TP get_terminator & (frame_cnt>256) & (frame_cnt <=511);
+	 end
+
+	 ///////////////////////////////////
+	 // 512-1023 byte Frame Received OK
+	 ///////////////////////////////////
+
+	 reg length_512_1023;
+	 always@(posedge rxclk or posedge reset) begin
+	        if(reset)
+			    length_512_1023 <=#TP 0;
+			  else
+			    length_512_1023 <=#TP get_terminator & (frame_cnt>512) & (frame_cnt <=1023);
+	 end
+
+	 ///////////////////////////////////
+	 // 1024-max byte Frame Received OK
+	 ///////////////////////////////////
+
+	 reg length_1024_max;
+	 always@(posedge rxclk or posedge reset) begin
+	        if(reset)
+			    length_1024_max <=#TP 0;
+			  else
+			    length_1024_max <=#TP get_terminator & (frame_cnt>1024) & (frame_cnt <=`MAX_VALID_LENGTH);
+	 end
+
+	 //////////////////////////////////////////////
+	 // Count for Control Frames Received OK
+	 //////////////////////////////////////////////
+	 //how to indicate a control frame(not clearly specificated in 802.3
+
+	 ///////////////////////////////////////////////
+	 // Count for Oversize Frames Received OK
+	 ///////////////////////////////////////////////
 	 
+	 reg jumbo_frame;
+	 always@(posedge rxclk or posedge reset) begin
+	       if(reset)
+				jumbo_frame <=#TP 0;
+			 else
+			   jumbo_frame <=#TP get_terminator & jumbo_enable & (frame_cnt > `MAX_VALID_LENGTH) & (frame_cnt < `MAX_JUMBO_LENGTH);
+	 end
+
 endmodule

@@ -19,7 +19,7 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////
 module rxFIFOMgnt(rxclk, reset, rxd64_d2, rxc_fifo, receiving, rx_data_valid, rx_data,
-                  wait_crc_check,receiving_d2);
+                  wait_crc_check,receiving_d1,receiving_d2);
     input rxclk;
     input reset;
     input [63:0] rxd64_d2;
@@ -29,6 +29,7 @@ module rxFIFOMgnt(rxclk, reset, rxd64_d2, rxc_fifo, receiving, rx_data_valid, rx
 
 	 output[7:0] rx_data_valid;
 	 output[63:0] rx_data;
+	 output receiving_d1;
 	 output receiving_d2;
 
 	 parameter TP =1;

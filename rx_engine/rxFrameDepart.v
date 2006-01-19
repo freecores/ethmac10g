@@ -26,17 +26,9 @@
 `define ERROR      8'h7f
 `define ALLONES    8'hff
 `define ALLZEROS   8'h00
-`define BYTE_0     3'b000
-`define BYTE_1     3'b001
-`define BYTE_2     3'b010
-`define BYTE_3     3'b011
-`define BYTE_4     3'b100
-`define BYTE_5     3'b101
-`define BYTE_6     3'b110
-`define BYTE_7     3'b111
 
-`define TAG_SIGN   16'h1800
-`define PAUSE_SIGN 16'h1101
+`define TAG_SIGN   16'h0081//8100
+`define PAUSE_SIGN 16'h1011//8808
 
 module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame,pause_frame,
                      inband_fcs, da_addr, lt_data, get_sfd, get_error_code,
@@ -78,7 +70,7 @@ module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame
 	       if (reset) 
 			    get_sfd <=#TP 0; 
 			 else
-			    get_sfd <=#TP (rxd64[63:56] ==`START) & (rxd64[7:0]== `SFD) & (rxc8 == 8'h80);
+			    get_sfd <=#TP (rxd64[7:0] ==`START) & (rxd64[63:56]== `SFD) & (rxc8 == 8'h01);
 	 end
 
  	 //2. EFD
@@ -94,43 +86,43 @@ module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame
 			 else begin
 			    if (rxc8[0] & (rxd64[7:0]  ==`TERMINATE)) begin
 				     get_terminator <=#TP 1'b1;
-					  terminator_location <=#TP 7;			 
-					  rxc_end_data <=#TP 8'b11100000;
+					  terminator_location <=#TP 4;			 
+					  rxc_end_data <=#TP 8'b00001111;
 			    end   
 			    else if (rxc8[1] & (rxd64[15:8] ==`TERMINATE)) begin
 				     get_terminator <=#TP 1'b1;
-					  terminator_location <=#TP 6;
-					  rxc_end_data <=#TP 8'b11000000;
+					  terminator_location <=#TP 5;
+					  rxc_end_data <=#TP 8'b00011111;
 				 end
 				 else if (rxc8[2] & (rxd64[23:16]==`TERMINATE)) begin
                  get_terminator <=#TP 1'b1;	
-					  terminator_location <=#TP 5;	
-					  rxc_end_data <=#TP 8'b10000000;
+					  terminator_location <=#TP 6;	
+					  rxc_end_data <=#TP 8'b00111111;
 				 end
 				 else if (rxc8[3] & (rxd64[31:24]==`TERMINATE)) begin
                  get_terminator <=#TP 1'b1;
-					  terminator_location <=#TP 4;					  			
-					  rxc_end_data <=#TP 8'b11111111;
+					  terminator_location <=#TP 7;					  			
+					  rxc_end_data <=#TP 8'b01111111;
 				 end
              else if (rxc8[4] & (rxd64[39:32]==`TERMINATE)) begin
 				     get_terminator <=#TP 1'b1; 
-					  terminator_location <=#TP 3;					  			
-					  rxc_end_data <=#TP 8'b11111110;
+					  terminator_location <=#TP 0;					  			
+					  rxc_end_data <=#TP 8'b11111111;
 				 end
 				 else if (rxc8[5] & (rxd64[47:40]==`TERMINATE)) begin		
                  get_terminator <=#TP 1'b1; 
-					  terminator_location <=#TP 2;
-					  rxc_end_data <=#TP 8'b11111100;
+					  terminator_location <=#TP 1;
+					  rxc_end_data <=#TP 8'b00000001;
 				 end
 				 else if (rxc8[6] & (rxd64[55:48]==`TERMINATE)) begin
                  get_terminator <=#TP 1'b1;	
-					  terminator_location <=#TP 1; 
-					  rxc_end_data <=#TP 8'b11111000;
+					  terminator_location <=#TP 2; 
+					  rxc_end_data <=#TP 8'b00000011;
 				 end
 				 else if (rxc8[7] & (rxd64[63:56]==`TERMINATE))	begin
                  get_terminator <=#TP 1'b1;	
-					  terminator_location <=#TP 0;
-					  rxc_end_data <=#TP 8'b11110000;
+					  terminator_location <=#TP 3;
+					  rxc_end_data <=#TP 8'b00000111;
 				 end
 				 else	begin
 				     get_terminator <=#TP 1'b0;
@@ -172,7 +164,7 @@ module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame
        if (reset) 
 	       da_addr <=#TP 0;
    	 else if (start_da) 
-	       da_addr <=#TP rxd64_d1[63:16];
+	       da_addr <=#TP rxd64_d1[47:0];
 		 else	
 		    da_addr <=#TP da_addr;
     end
@@ -199,16 +191,6 @@ module rxFrameDepart(rxclk, reset, rxd64, rxc8, start_da, start_lt, tagged_frame
 		    tagged_frame <=#TP (rxd64[47:32] == `TAG_SIGN); 
 		 else								
 		    tagged_frame <=#TP tagged_frame;
-	 end
-
-	 reg small_frame;
-	 always@(posedge rxclk or posedge reset) begin
-	    if (reset)
-		    small_frame <=#TP 1'b0;
-       else	if (start_lt)
-		    small_frame <=#TP (rxd64[47:32] < 46);
-		 else								
-		    small_frame <=#TP small_frame;
 	 end
 	 
 	 reg pause_frame;

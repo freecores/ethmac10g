@@ -35,18 +35,80 @@ module rxLinkFaultState(rxclk_2x, reset, local_fault, remote_fault, link_fault);
 	 wire  get_one_fault;
 	 wire  no_new_type;
 
-	 reg[2:0] linkstate;
-	 reg[7:0] col_cnt;
+	 reg[2:0] linkstate, linkstate_next;
+	 reg[6:0] col_cnt;
 	 reg[1:0] seq_cnt;
 	 reg[1:0] seq_type;
 	 reg[1:0] last_seq_type;
 	 reg[1:0] link_fault;
 	 reg      reset_col_cnt;
+	 wire     seq_cnt_3;
+	 wire   	 col_cnt_128;
 
 	 assign fault_type = {local_fault, remote_fault};
 	 assign get_one_fault = local_fault | remote_fault;
 	 assign no_new_type = (seq_type == last_seq_type);
-	 assign col_cnt_128 = (col_cnt == 127);
+	 assign col_cnt_128 = & col_cnt;
+	 assign seq_cnt_3 = seq_cnt[0] & seq_cnt[1];
+
+//    always@(linkstate, get_one_fault, no_new_type, col_cnt_128,seq_cnt_3) begin
+//	     if (reset) begin
+//		     linkstate_next <=#TP IDLE;
+//		  end
+//		  else begin
+//		     case (linkstate)
+//			      IDLE: begin
+//					  	  if(get_one_fault)
+//						    linkstate_next <=#TP LinkFaultDetect;
+//						  else
+//						    linkstate_next <=#TP IDLE;
+//					end
+//					LinkFaultDetect: begin
+//					     if(get_one_fault & ~no_new_type)//new type detected
+//						     linkstate_next <=#TP NewFaultType;
+//                    else if(get_one_fault & no_new_type & seq_cnt_3)
+//						     linkstate_next <=#TP GetFault;
+//						  else if(~get_one_fault & col_cnt_128)
+//						     linkstate_next <=#TP IDLE;
+//						  else
+//						     linkstate_next <=#TP LinkFaultDetect;
+//					end
+//					NewFaultType: begin
+//					     linkstate_next <=#TP LinkFaultDetect;
+//					end
+//					GetFault:
+//					     linkstate_next <=#TP IDLE;
+//			   endcase
+//			end	
+//	 end
+	 
+//	 always@(posedge rxclk_2x or posedge reset) begin
+//	     if (reset)
+//		     linkstate <=#TP IDLE;
+//		  else
+//		     linkstate <=#TP linkstate_next;
+//	 end
+//	 
+//	 always@(posedge rxclk_2x or posedge reset)begin
+//	     if (reset) begin
+//			  seq_type <=#TP 0;
+//			  last_seq_type <=#TP 0;	
+//		  end
+//		  else begin
+//			   seq_type <= #TP fault_type;	
+//			   last_seq_type <=#TP seq_type;
+//		  end	
+//	 end
+//	 
+//	 always@(posedge rxclk_2x or posedge reset)begin
+//	     if (reset)
+//		     seq_cnt <=#TP 0;
+//		  else if((linkstate == LinkFaultDetect)& get_one_fault & no_new_type)
+//		     seq_cnt <=#TP seq_cnt+1;
+//	 end	
+//	 
+//	 assign reset_col_cnt = (linkstate != LinkFaultDetect) | get_one_fault | col_cnt_128;
+//	 assign link_fault = (linkstate == GetFault)? seq_type:2'b00;  	  	  	 	     
 
 	 always@(posedge rxclk_2x or posedge reset)begin
 	     if (reset) begin
@@ -73,16 +135,19 @@ module rxLinkFaultState(rxclk_2x, reset, local_fault, remote_fault, link_fault);
            	   LinkFaultDetect: begin
 					     linkstate <=#TP LinkFaultDetect;
 						  reset_col_cnt <=#TP 1;
-					     if (get_one_fault & no_new_type)
-						     if (seq_cnt < 3) 
-						        seq_cnt <=#TP seq_cnt + 1;
-							  else linkstate <=#TP GetFault;
-						  else if(~get_one_fault) 
-						       if(col_cnt_128) begin
+					     if (get_one_fault & no_new_type) begin
+						     if (seq_cnt_3) begin 
+							     linkstate <=#TP IDLE;
+								  link_fault <=#TP seq_type;
+							  end
+							  else
+								  seq_cnt <=#TP seq_cnt + 1;
+						  end
+						  else if(~get_one_fault) begin
+								    reset_col_cnt <=#TP 0; 
+								 if (& col_cnt)
 						  	  	    linkstate <=#TP IDLE;
-									 reset_col_cnt <=#TP 1;
-								 end
-								 else reset_col_cnt <=#TP 0;
+						  end
 						  else if(get_one_fault & ~no_new_type)
 						        linkstate <=#TP NewFaultType;
 					end
@@ -93,19 +158,20 @@ module rxLinkFaultState(rxclk_2x, reset, local_fault, remote_fault, link_fault);
 						  reset_col_cnt<=#TP 1;
             	end
 
-					GetFault: begin
-					 	  linkstate <=#TP GetFault;
-						  reset_col_cnt <=#TP 1;
-                    if (get_one_fault & no_new_type) 
-								link_fault <=#TP seq_type;	
-				        else if (~get_one_fault)	begin
-						         reset_col_cnt<=#TP 0;
-									if(col_cnt_128)
-							        linkstate <=#TP IDLE;
-						  end
-                    else if (get_one_fault &	~no_new_type)
-						      linkstate <=#TP NewFaultType;
-					end 	  	
+//					GetFault: begin
+//					 	  linkstate <=#TP IDLE;
+//						  reset_col_cnt <=#TP 1;
+//						  link_fault <=#TP seq_type;
+//                    if (get_one_fault & no_new_type) 
+//								link_fault <=#TP seq_type;	
+//				        else if (~get_one_fault)	begin
+//						         reset_col_cnt<=#TP 0;
+//									if(col_cnt_128)
+//							        linkstate <=#TP IDLE;
+//						  end
+//                    else if (get_one_fault &	~no_new_type)
+//						      linkstate <=#TP NewFaultType;
+//					end 	  	
 			   endcase
 	    end
   	 end

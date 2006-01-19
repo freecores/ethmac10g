@@ -18,21 +18,21 @@
 // Additional Comments:
 // 
 ////////////////////////////////////////////////////////////////////////////////
-module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,reset_out,
-                       cfgRxRegData_in, rx_data, rx_data_valid, rx_good_frame, link_fault_in, 
+module rxReceiveEngine(rxclk_in, rxclk_2x,reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_out,
+                       cfgRxRegData_in, rx_data, rx_data_valid, rx_good_frame,
                        rx_bad_frame, rxCfgofRS, rxTxLinkFault);
     input rxclk_in;
     input reset_in;
-    input [63:0] rxd64_in;
-    input [7:0] rxc8_in;
+    input [31:0] rxd_in;
+    input [3:0] rxc_in;
 	 output reset_out;
-    output [12:0] rxStatRegPlus;	
+	 output rxclk_2x;
+    output [17:0] rxStatRegPlus;	
     input [52:0] cfgRxRegData_in;
     output [63:0] rx_data;
     output [7:0] rx_data_valid;
     output rx_good_frame;
     output rx_bad_frame;
-	 input [1:0] link_fault_in;
 	 output[2:0] rxCfgofRS;
     output [1:0] rxTxLinkFault;
 
@@ -59,10 +59,21 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 	 wire [11:0] frame_cnt;
 	 wire [7:0]  rxc_fifo;
 	 wire [2:0]  terminator_location;
-	 wire length_error;
 	 wire get_sfd,get_error_code,get_terminator;
 	 wire receiving;
 	 wire receiving_d2;
+
+	 
+	 wire length_error;
+	 wire large_error;
+	 wire small_error;
+	 wire padded_frame;
+	 wire length_65_127;
+	 wire length_128_255;
+	 wire length_256_511;
+	 wire length_512_1023;
+	 wire length_1024_max;
+	 wire jumbo_frame;
 
 	 wire local_invalid;
 	 wire broad_valid;
@@ -74,36 +85,27 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 	 wire crc_check_valid;
 	 wire crc_check_invalid;
 
+	 wire [1:0]link_fault;
+
 	 //////////////////////////////////////////
 	 // Input Registers
 	 //////////////////////////////////////////
 	 
-	 reg [63:0]rxd64,rxd64_d1,rxd64_d2;
-	 reg [7:0]rxc8;
+	 wire [63:0] rxd64;
+	 reg [63:0]rxd64_d1,rxd64_d2;
+	 wire [7:0] rxc8;
 	 reg [52:0]cfgRxRegData;
 	 always@(posedge rxclk or posedge reset) begin
-	       if (reset)	begin
-			    rxd64 <=#TP 0;
+	       if (reset)	begin		
 				 rxd64_d1<=#TP 0;
-				 rxd64_d2<=#TP 0;	 
-				 rxc8  <=#TP 0;
+				 rxd64_d2<=#TP 0;
 				 cfgRxRegData <=#TP 0;
 			 end
 			 else begin
-			    rxd64 <=#TP rxd64_in;
 				 rxd64_d1<=#TP rxd64;
 				 rxd64_d2<=#TP rxd64_d1;
-				 rxc8  <=#TP rxc8_in;
 				 cfgRxRegData <=#TP cfgRxRegData_in;
 			 end
-	 end
-	 
-	 reg [1:0]link_fault;
-	 always@(posedge rxclk or posedge reset) begin
-			  if (reset)
-			     link_fault<=#TP 0;
-			  else
-			     link_fault<=#TP link_fault_in;
 	 end
 
 	 assign rxTxLinkFault = link_fault;
@@ -135,7 +137,8 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 
 	 rxClkgen rxclk_gen(.rxclk_in(rxclk_in),
 	                    .reset(reset_dcm),
-							  .rxclk(rxclk), 
+							  .rxclk(rxclk),
+							  .rxclk_180(rxclk_180), 
 							  .rxclk_2x(rxclk_2x), 
 							  .locked(locked)
 							  );
@@ -146,7 +149,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 
 	 rxFIFOMgnt upperinterface(.rxclk(rxclk), .reset(reset), .rxd64_d2(rxd64_d2), .rxc_fifo(rxc_fifo), .receiving(receiving), 
 	                           .rx_data_valid(rx_data_valid), .wait_crc_check(wait_crc_check),
-										.rx_data(rx_data), .receiving_d2(receiving_d2));
+										.rx_data(rx_data), .receiving_d1(receiving_d1), .receiving_d2(receiving_d2));
 
 	 ///////////////////////////////////////
 	 // Reception Frame Spliter
@@ -173,7 +176,9 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 
 	 rxLenTypChecker lenchecker(.rxclk(rxclk), .reset(reset), .get_terminator(get_terminator), .terminator_location(terminator_location), 
 	                            .jumbo_enable(jumbo_enable), .tagged_frame(tagged_frame), .frame_cnt(frame_cnt), .vlan_enable(vlan_enable),
-										 .length_error(length_error)
+										 .length_error(length_error), .large_error(large_error),.small_error(small_error), .padded_frame(padded_frame),
+					                .length_65_127(length_65_127), .length_128_255(length_128_255), .length_256_511(length_256_511), .length_512_1023(length_512_1023), 
+					                .length_1024_max(length_1024_max), .jumbo_frame(jumbo_frame)
 										 );		
 
 	 /////////////////////////////////////
@@ -199,6 +204,17 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd64_in, rxc8_in, rxStatRegPlus,rese
 	 /////////////////////////////////////
 	 rxCRC crcmodule(.rxclk(rxclk), .reset(reset), .receiving_d2(receiving_d2), .get_terminator(get_terminator),.rxd64_d2(rxd64_d2),
 	                 .crc_check_invalid(crc_check_invalid), .crc_check_valid(crc_check_valid), .terminator_location(terminator_location),
-						  .wait_crc_check(wait_crc_check));
-//					   
+						  .wait_crc_check(wait_crc_check),.receiving_d1(receiving_d1));
+    /////////////////////////////////////
+	 // RS Layer
+	 /////////////////////////////////////
+    rxRSLayer rx_rs(.rxclk(rxclk), .rxclk_180(rxclk_180), .rxclk_2x(rxclk_2x), .reset(reset), .link_fault(link_fault), .rxd64(rxd64), .rxc8(rxc8), .rxd_in(rxd_in), .rxc_in(rxc_in));
+    
+	 /////////////////////////////////////
+	 // Statistic module
+	 /////////////////////////////////////
+	 rxStatModule rx_stat(.rxclk(rxclk),.reset(reset),.good_frame_get(good_frame_get), .large_error(large_error),.small_error(small_error), .crc_check_invalid(crc_check_invalid),
+                 .receiving(receiving), .padded_frame(padded_frame), .pause_frame(pause_frame), .broad_valid(broad_valid), .multi_valid(multi_valid),
+					  .length_65_127(length_65_127), .length_128_255(length_128_255), .length_256_511(length_256_511), .length_512_1023(length_512_1023), 
+					  .length_1024_max(length_1024_max), .jumbo_frame(jumbo_frame),.get_error_code(get_error_code), .rxStatRegPlus(rxStatRegPlus));				   
 endmodule
