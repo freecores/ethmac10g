@@ -66,8 +66,7 @@ module rxCRC(rxclk, reset, receiving_d1, receiving_d2, rxd64_d2, get_terminator,
 	      if (reset)
 			   bytes_cnt <=#TP 0;
 			else if (get_terminator)
-			   bytes_cnt <=#TP {rxd64_d2[7:0],rxd64_d2[15:8],rxd64_d2[23:16],rxd64_d2[31:24],
-				                 rxd64_d2[39:32],rxd64_d2[47:40],rxd64_d2[55:48],rxd64_d2[63:56]};
+			   bytes_cnt <=#TP terminator_location;
 			else
 			   bytes_cnt <=#TP bytes_cnt;
 	 end
@@ -77,7 +76,8 @@ module rxCRC(rxclk, reset, receiving_d1, receiving_d2, rxd64_d2, get_terminator,
 	      if(reset)
 			   terminator_data <=#TP 0;
 			else if (get_terminator_d1)
-			  	terminator_data <=#TP rxd64_d2;
+			  	terminator_data <=#TP  {rxd64_d2[7:0],rxd64_d2[15:8],rxd64_d2[23:16],rxd64_d2[31:24],
+				                       rxd64_d2[39:32],rxd64_d2[47:40],rxd64_d2[55:48],rxd64_d2[63:56]};
 			else
 			   terminator_data <=#TP terminator_data;
 	 end
@@ -94,12 +94,11 @@ module rxCRC(rxclk, reset, receiving_d1, receiving_d2, rxd64_d2, get_terminator,
 	 
 	 wire [31:0] crc_byte[6:0];
 
-	 CRC32_D64 crc64(.DATA_IN(rxd64_d3), .CLK(rxclk), .RESET(reset), .START(receiving_d2&receiving_d1), .CRC_OUT(crc_gen), .init(~receiving_d2));
+	 CRC32_D64 crc64(.DATA_IN(rxd64_d3), .CLK(rxclk), .RESET(reset), .START(receiving_d2&receiving_d1), .CRC_OUT(crc_gen), .init(get_terminator_d3));
 
 	 crc_bytes crcbytes(.d(terminator_data), .crc_in(crc_gen), .crc_byte1(crc_byte[0]),.crc_byte2(crc_byte[1]),.crc_byte3(crc_byte[2]),
 	                    .crc_byte4(crc_byte[3]),.crc_byte5(crc_byte[4]),.crc_byte6(crc_byte[5]),.crc_byte7(crc_byte[6]));			 
 
-	 wire[31:0] crc_code;
 	 reg[31:0] crc_part;
 	 always@(posedge rxclk or posedge reset) begin
 	        if(reset)
