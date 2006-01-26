@@ -18,10 +18,9 @@
 // Additional Comments:
 // 
 ////////////////////////////////////////////////////////////////////////////////
-module rxRSLayer(rxclk, rxclk_180, rxclk_2x, reset, link_fault, rxd64, rxc8, rxd_in, rxc_in);
+module rxRSLayer(rxclk, rxclk_180, reset, link_fault, rxd64, rxc8, rxd_in, rxc_in);
     input rxclk;
 	 input rxclk_180;
-	 input rxclk_2x;
     input reset;     
 	 input [31:0] rxd_in;
     input [3:0] rxc_in;
@@ -34,7 +33,7 @@ module rxRSLayer(rxclk, rxclk_180, rxclk_2x, reset, link_fault, rxd64, rxc8, rxd
 	 wire[1:0]  link_fault;
 
 	 rxRSIO datapath(.rxclk(rxclk), 
-	                 .rxclk_2x(rxclk_2x),
+	                 .rxclk_180(rxclk_180),
 	                 .reset(reset), 
 						  .rxd_in(rxd_in), 
 						  .rxc_in(rxc_in), 
@@ -44,7 +43,7 @@ module rxRSLayer(rxclk, rxclk_180, rxclk_2x, reset, link_fault, rxd64, rxc8, rxd
 						  .remote_fault(remote_fault)
 						  );
 	 
-	 rxLinkFaultState statemachine(.rxclk_2x(rxclk_2x),
+	 rxLinkFaultState statemachine(.rxclk(rxclk_180),
 	                               .reset(reset),
 											 .local_fault(local_fault), 
 											 .remote_fault(remote_fault), 

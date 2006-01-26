@@ -19,7 +19,7 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////
 module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, length_error, crc_check_valid, crc_check_invalid, 
-       start_da, start_lt, receiving,good_frame_get, bad_frame_get, get_error_code, wait_crc_check,
+       start_da, start_lt, receiving, receiving_d1, receiving_d2,good_frame_get, bad_frame_get, get_error_code, wait_crc_check,
 		 get_terminator);
    
 	 input rxclk;
@@ -50,6 +50,7 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, length_
 	
     //Receive process control
 	 output receiving; //Rx Engine is working, not in IDLE state and Check state.
+	 output receiving_d1, receiving_d2;
 	 output good_frame_get;// A good frame has been received;
 	 output bad_frame_get; // A bad frame has been received; 
 	 output wait_crc_check;// 
@@ -113,6 +114,19 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, length_
 	 assign start_da = rxstate[0];
 	 assign start_lt = rxstate[1];
 	 assign receiving = rxstate[2] | rxstate[1] | rxstate[0]; // in DA,LT,DATA status
+	 
+	 reg receiving_d1, receiving_d2;
+	 always@(posedge rxclk or posedge reset) begin
+	      if (reset) begin
+			   receiving_d1<=#TP 0;
+			   receiving_d2<=#TP 0;
+         end
+         else begin
+            receiving_d1<=#TP receiving;
+            receiving_d2<=#TP receiving_d1;
+			end
+    end
+	 
 	 reg  wait_crc_check;							  	
 	 always@(posedge rxclk or posedge reset) begin
 	      if (reset)

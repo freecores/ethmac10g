@@ -1,6 +1,43 @@
+module CRC32_D8(DATA_IN, CLK, RESET, START, LOAD, CRC_IN, CRC_OUT);
+
+  input [7:0] DATA_IN;
+  input CLK;	
+  input RESET;
+  input START;
+  input LOAD; 
+  input [31:0] CRC_IN;
+  output [31:0] CRC_OUT;
+
+  reg [31:0] CRC_OUT;
+//  reg start_int;
+//  reg [7:0] data_int;
+  
+//always @(posedge CLK)
+//begin
+//  start_int <= START;
+//  data_int <= DATA_IN;
+//end
+
+always @(posedge CLK or posedge RESET)
+  begin
+    if (RESET) begin
+        CRC_OUT <= 0;
+    end
+    else if (START) begin
+        CRC_OUT <= nextCRC32_D8(DATA_IN, CRC_OUT);
+    end 
+    else if (LOAD) begin
+        CRC_OUT <= CRC_IN;
+    end   
+    
+
+    	
+  end
+
+
 ///////////////////////////////////////////////////////////////////////
-// File:  CRC32_D8.v                             
-// Date:  Sat Dec 10 12:55:08 2005                                                      
+// File:  CRC32_D64.v                             
+// Date:  Sun Nov 27 19:32:12 2005                                                      
 //                                                                     
 // Copyright (C) 1999-2003 Easics NV.                 
 // This source file may be used and distributed without restriction    
@@ -13,23 +50,13 @@
 // WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 //
 // Purpose: Verilog module containing a synthesizable CRC function
-//   * polynomial: (0 1 2 3 4 5 7 8 10 11 12 16 22 23 26 32)
-//   * data width: 8
+//   * polynomial: (0 1 2 4 5 7 8 10 11 12 16 22 23 26 32)
+//   * data width: 64
 //                                                                     
 // Info: tools@easics.be
 //       http://www.easics.com                                  
 ///////////////////////////////////////////////////////////////////////
 
-
-module CRC32_D8(DATA_IN,CRC_IN, CRC_OUT);
-
-  input [7:0] DATA_IN;
-  input [31:0] CRC_IN;
-  output [31:0] CRC_OUT;
-
-  wire [31:0] CRC_OUT;
-
-  assign CRC_OUT = nextCRC32_D8(DATA_IN, CRC_IN);
   // polynomial: (0 1 2 3 4 5 7 8 10 11 12 16 22 23 26 32)
   // data width: 8
   // convention: the first serial data bit is D[7]
@@ -47,7 +74,7 @@ module CRC32_D8(DATA_IN,CRC_IN, CRC_OUT);
     D = Data;
     C = CRC;
 
-
+   
     NewCRC[0] = D[6] ^ D[0] ^ C[24] ^ C[30];
     NewCRC[1] = D[7] ^ D[6] ^ D[1] ^ D[0] ^ C[24] ^ C[25] ^ C[30] ^ 
                 C[31];
@@ -105,3 +132,4 @@ module CRC32_D8(DATA_IN,CRC_IN, CRC_OUT);
   endfunction
 
 endmodule
+

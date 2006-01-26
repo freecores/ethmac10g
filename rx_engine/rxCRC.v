@@ -19,14 +19,13 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////
 `define ALLONES 64'hffffffffffffffff
-module rxCRC(rxclk, reset, receiving_d1, receiving_d2, rxd64_d2, get_terminator, crc_check_invalid, crc_check_valid, wait_crc_check, terminator_location);
+module rxCRC(rxclk, reset, receiving, receiving_d1, receiving_d2, CRC_DATA, get_terminator, crc_check_invalid, crc_check_valid, terminator_location);
     input rxclk;
     input reset;
 	 input get_terminator;
-    input [63:0] rxd64_d2;
-	 input receiving_d2;
-	 input receiving_d1;
-	 input wait_crc_check;
+    input [63:0] CRC_DATA;
+	 input receiving;
+	 input receiving_d1,receiving_d2;
 	 input [2:0] terminator_location;
 
 	 output crc_check_invalid;
@@ -37,15 +36,6 @@ module rxCRC(rxclk, reset, receiving_d1, receiving_d2, rxd64_d2, get_terminator,
 	 /////////////////////////////////////////////////////////////////////////////////////////////
 	 // Input registers
 	 /////////////////////////////////////////////////////////////////////////////////////////////
-
-	 reg[63:0] rxd64_d3;
-	 always@(posedge rxclk or posedge reset) begin
-	      if(reset)
-			   rxd64_d3<=0;
-         else
-			   rxd64_d3 <={rxd64_d2[7:0],rxd64_d2[15:8],rxd64_d2[23:16],rxd64_d2[31:24],
-				            rxd64_d2[39:32],rxd64_d2[47:40],rxd64_d2[55:48],rxd64_d2[63:56]};
-	 end
 
 	 reg get_terminator_d1, get_terminator_d2,get_terminator_d3;
 	 always@(posedge rxclk or posedge reset) begin
@@ -62,26 +52,26 @@ module rxCRC(rxclk, reset, receiving_d1, receiving_d2, rxd64_d2, get_terminator,
 	 end
 
 	 reg[2:0] bytes_cnt;
+	 reg start_tmp;
 	 always@(posedge rxclk or posedge reset) begin
 	      if (reset)
 			   bytes_cnt <=#TP 0;
 			else if (get_terminator)
 			   bytes_cnt <=#TP terminator_location;
-			else
-			   bytes_cnt <=#TP bytes_cnt;
+			else if (start_tmp)
+			   bytes_cnt <=#TP bytes_cnt-1;
 	 end
 
 	 reg[63:0] terminator_data;
 	 always@(posedge rxclk or posedge reset) begin
 	      if(reset)
 			   terminator_data <=#TP 0;
-			else if (get_terminator_d1)
-			  	terminator_data <=#TP  {rxd64_d2[7:0],rxd64_d2[15:8],rxd64_d2[23:16],rxd64_d2[31:24],
-				                       rxd64_d2[39:32],rxd64_d2[47:40],rxd64_d2[55:48],rxd64_d2[63:56]};
+			else if (get_terminator_d2)
+			  	terminator_data <=#TP CRC_DATA;
 			else
-			   terminator_data <=#TP terminator_data;
+			   terminator_data <=#TP terminator_data<<8;
 	 end
-
+	 
 	 /////////////////////////////////////////////////////////////////////////////////////////////
 	 // 64bits CRC 
 	 // start: crc_valid = 8'hff and receiving_frame = 1
@@ -91,55 +81,39 @@ module rxCRC(rxclk, reset, receiving_d1, receiving_d2, rxd64_d2, get_terminator,
 	 /////////////////////////////////////////////////////////////////////////////////////////////
 
     wire [31:0] crc_gen;
-	 
-	 wire [31:0] crc_byte[6:0];
 
-	 CRC32_D64 crc64(.DATA_IN(rxd64_d3), .CLK(rxclk), .RESET(reset), .START(receiving_d2&receiving_d1), .CRC_OUT(crc_gen), .init(get_terminator_d3));
-
-	 crc_bytes crcbytes(.d(terminator_data), .crc_in(crc_gen), .crc_byte1(crc_byte[0]),.crc_byte2(crc_byte[1]),.crc_byte3(crc_byte[2]),
-	                    .crc_byte4(crc_byte[3]),.crc_byte5(crc_byte[4]),.crc_byte6(crc_byte[5]),.crc_byte7(crc_byte[6]));			 
-
-	 reg[31:0] crc_part;
+	 CRC32_D64 crc64(.DATA_IN(CRC_DATA), .CLK(rxclk), .RESET(reset), .START(receiving_d2&receiving_d1), .CRC_OUT(crc_gen), .init(get_terminator_d3));
+     
+	 /////////////////////////////////////////////////////////////////////////////////////////////
+	 // 8bits CRC
+	 /////////////////////////////////////////////////////////////////////////////////////////////
+   
+  	 reg[7:0] CRC_DATA_TMP;
+    always@(posedge rxclk or posedge reset) begin
+	      if(reset)
+			  CRC_DATA_TMP <=#TP 0;
+			else 
+           CRC_DATA_TMP <=#TP terminator_data[63:56];			
+    end
+    
 	 always@(posedge rxclk or posedge reset) begin
-	        if(reset)
-			    crc_part <=#TP 0;
-			  else
-			    case (bytes_cnt) 
-					     3'b001: crc_part <=#TP crc_byte[0];
-					     3'b010: crc_part <=#TP crc_byte[1];
-					     3'b011: crc_part <=#TP crc_byte[2];
-					     3'b100: crc_part <=#TP crc_byte[3];
-					     3'b101: crc_part <=#TP crc_byte[4];
-					     3'b110: crc_part <=#TP crc_byte[5];
-					     3'b111: crc_part <=#TP crc_byte[6];
-					     3'b000: crc_part <=#TP crc_gen;
-				 endcase
-	 end
-
-//	 assign crc_code = get_terminator_d2?crc_part:crc_gen;
-//	 always @(posedge rxclk or posedge reset) begin
-//	        if(reset) 
-//			    crc_code <=#TP 0;
-//			  else if (get_terminator_d2) 
-//			       case (bytes_cnt) 
-//					     3'b001: crc_code <=#TP crc_byte[0];
-//					     3'b010: crc_code <=#TP crc_byte[1];
-//					     3'b011: crc_code <=#TP crc_byte[2];
-//					     3'b100: crc_code <=#TP crc_byte[3];
-//					     3'b101: crc_code <=#TP crc_byte[4];
-//					     3'b110: crc_code <=#TP crc_byte[5];
-//					     3'b111: crc_code <=#TP crc_byte[6];
-//					     3'b000: crc_code <=#TP crc_gen;
-//					 endcase
-//			  else 
-//			       crc_code <=#TP crc_gen;
-//	 end
+	      if(reset)
+			  start_tmp <=#TP 0;
+			else if (get_terminator_d3)
+           start_tmp <=#TP 1'b1;
+         else if(bytes_cnt==1)
+           start_tmp <=#TP 1'b0;
+	 end		  
+	 
+	 wire[31:0] crc_tmp;
+	 CRC32_D8  crc8(.DATA_IN(CRC_DATA_TMP), .CLK(rxclk), .RESET(reset), .START(start_tmp), .LOAD(~start_tmp), .CRC_IN(crc_gen), .CRC_OUT(crc_tmp));		 
+	
     ////////////////////////////////////////////////////////////////////////////////////////////
     // CRC check
 	 ////////////////////////////////////////////////////////////////////////////////////////////
 	 wire crc_check_valid, crc_check_invalid;
 
-	 assign crc_check_valid  = get_terminator_d3 & (crc_part==32'hc704dd7b);
-	 assign crc_check_invalid = get_terminator_d3 & (crc_part!=32'hc704dd7b);
+	 assign crc_check_valid  = (~bytes_cnt) & (crc_tmp==32'hc704dd7b);
+	 assign crc_check_invalid =(~bytes_cnt) & (crc_tmp!=32'hc704dd7b);
 
 endmodule

@@ -18,7 +18,7 @@
 // Additional Comments:
 // 
 ////////////////////////////////////////////////////////////////////////////////
-module rxReceiveEngine(rxclk_in, rxclk_2x,reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_out,
+module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_out,
                        cfgRxRegData_in, rx_data, rx_data_valid, rx_good_frame,
                        rx_bad_frame, rxCfgofRS, rxTxLinkFault);
     input rxclk_in;
@@ -26,7 +26,6 @@ module rxReceiveEngine(rxclk_in, rxclk_2x,reset_in, rxd_in, rxc_in, rxStatRegPlu
     input [31:0] rxd_in;
     input [3:0] rxc_in;
 	 output reset_out;
-	 output rxclk_2x;
     output [17:0] rxStatRegPlus;	
     input [52:0] cfgRxRegData_in;
     output [63:0] rx_data;
@@ -39,29 +38,27 @@ module rxReceiveEngine(rxclk_in, rxclk_2x,reset_in, rxd_in, rxc_in, rxStatRegPlu
 	 parameter TP =1;
 
     wire rxclk;
-	 wire rxclk_2x;
 	 wire locked;
 	 wire reset_dcm;
 	 wire reset;
 
-	 wire [47:0]MAC_Addr;	//MAC Address used in receiving control frame.
-    wire      vlan_enable; //VLAN Enable
-	 wire      recv_enable; //Receiver Enable
-	 wire      inband_fcs;	//In-band FCS Enable, when this bit is '1', the MAC will pass FCS up to client
-	 wire      jumbo_enable;//Jumbo Frame Enable
-	 wire      recv_rst;		//Receiver reset
+	 reg [47:0]MAC_Addr;	//MAC Address used in receiving control frame.
+    reg      vlan_enable; //VLAN Enable
+	 reg      recv_enable; //Receiver Enable
+	 reg      inband_fcs;	//In-band FCS Enable, when this bit is '1', the MAC will pass FCS up to client
+	 reg      jumbo_enable;//Jumbo Frame Enable
+	 reg      recv_rst;		//Receiver reset
 
 	 wire start_da, start_lt;
 	 wire tagged_frame;
 	 wire pause_frame;
 	 wire [47:0] da_addr;
-	 wire [15:0] lt_data;
+//	 wire [15:0] lt_data;
 	 wire [11:0] frame_cnt;
-	 wire [7:0]  rxc_fifo;
 	 wire [2:0]  terminator_location;
 	 wire get_sfd,get_error_code,get_terminator;
 	 wire receiving;
-	 wire receiving_d2;
+	 wire receiving_d1,receiving_d2;
 
 	 
 	 wire length_error;
@@ -92,34 +89,43 @@ module rxReceiveEngine(rxclk_in, rxclk_2x,reset_in, rxd_in, rxc_in, rxStatRegPlu
 	 //////////////////////////////////////////
 	 
 	 wire [63:0] rxd64;
-	 reg [63:0]rxd64_d1,rxd64_d2;
+	 wire [63:0] CRC_DATA;
 	 wire [7:0] rxc8;
-	 reg [52:0]cfgRxRegData;
-	 always@(posedge rxclk or posedge reset) begin
-	       if (reset)	begin		
-				 rxd64_d1<=#TP 0;
-				 rxd64_d2<=#TP 0;
-				 cfgRxRegData <=#TP 0;
-			 end
-			 else begin
-				 rxd64_d1<=#TP rxd64;
-				 rxd64_d2<=#TP rxd64_d1;
-				 cfgRxRegData <=#TP cfgRxRegData_in;
-			 end
-	 end
+//	 reg [52:0]cfgRxRegData;
+//	 always@(posedge rxclk or posedge reset) begin
+//	       if (reset)	begin		
+//				 cfgRxRegData <=#TP 0;
+//			 end
+//			 else begin
+//				 cfgRxRegData <=#TP cfgRxRegData_in;
+//			 end
+//	 end
 
 	 assign rxTxLinkFault = link_fault;
 	 //////////////////////////////////////////
 	 // Read Receiver Configuration Word
 	 //////////////////////////////////////////
-
-	 assign  MAC_Addr = {cfgRxRegData[52:37], cfgRxRegData[31:0]};
-	 assign  vlan_enable = cfgRxRegData[36];
-	 assign  recv_enable = cfgRxRegData[35];
-	 assign  inband_fcs  = cfgRxRegData[34];
-	 assign  jumbo_enable = cfgRxRegData[33];
-	 assign  recv_rst = cfgRxRegData[32];
-    assign  reset_dcm = reset_in | recv_rst;
+	 
+	 always@(posedge rxclk or posedge reset)begin
+	        if(reset) begin
+			     MAC_Addr <= 0;
+	           vlan_enable <= 0;
+	           recv_enable <= 0;
+	           inband_fcs  <= 0;
+	           jumbo_enable <= 0;
+	           recv_rst <= 0;
+			  end
+			  else begin
+			     MAC_Addr <= {cfgRxRegData_in[52:37], cfgRxRegData_in[31:0]};
+	           vlan_enable <= cfgRxRegData_in[36];
+	           recv_enable <= cfgRxRegData_in[35];
+	           inband_fcs  <= cfgRxRegData_in[34];
+	           jumbo_enable <= cfgRxRegData_in[33];
+	           recv_rst <= cfgRxRegData_in[32];
+			  end
+    end			  
+    
+	 assign  reset_dcm = reset_in | recv_rst;
 	 assign  reset = ~locked;
 	 assign  reset_out = reset;
 	 
@@ -139,28 +145,18 @@ module rxReceiveEngine(rxclk_in, rxclk_2x,reset_in, rxd_in, rxc_in, rxStatRegPlu
 	                    .reset(reset_dcm),
 							  .rxclk(rxclk),
 							  .rxclk_180(rxclk_180), 
-							  .rxclk_2x(rxclk_2x), 
 							  .locked(locked)
 							  );
-
-	 ///////////////////////////////////////
-	 // Upper Interface with client
-	 ///////////////////////////////////////
-
-	 rxFIFOMgnt upperinterface(.rxclk(rxclk), .reset(reset), .rxd64_d2(rxd64_d2), .rxc_fifo(rxc_fifo), .receiving(receiving), 
-	                           .rx_data_valid(rx_data_valid), .wait_crc_check(wait_crc_check),
-										.rx_data(rx_data), .receiving_d1(receiving_d1), .receiving_d2(receiving_d2));
-
-	 ///////////////////////////////////////
-	 // Reception Frame Spliter
-	 ///////////////////////////////////////
-
-	 rxFrameDepart frame_spliter(.rxclk(rxclk), .reset(reset), .rxd64(rxd64), .rxc8(rxc8), .start_da(start_da), .start_lt(start_lt), 
-	                             .tagged_frame(tagged_frame), .pause_frame(pause_frame),.inband_fcs(inband_fcs),.da_addr(da_addr), 
-										  .lt_data(lt_data), .get_sfd(get_sfd), .get_error_code(get_error_code),.rxc_fifo(rxc_fifo),
-							           .rxd64_d1(rxd64_d1),.rxd64_d2(rxd64_d2), .get_terminator(get_terminator), .terminator_location(terminator_location)
-										 );
-
+	
+	 //////////////////////////////////////
+    // Rx Engine DataPath
+	 //////////////////////////////////////
+	 rxDataPath datapath_main(.rxclk(rxclk), .reset(reset), .rxd64(rxd64), .rxc8(rxc8), .inband_fcs(inband_fcs), .receiving(receiving), 
+	                          .start_da(start_da), .start_lt(start_lt), .wait_crc_check(wait_crc_check), .get_sfd(get_sfd), 
+                             .get_terminator(get_terminator), .get_error_code(get_error_code), .tagged_frame(tagged_frame), .pause_frame(pause_frame),
+									  .da_addr(da_addr), .terminator_location(terminator_location), .CRC_DATA(CRC_DATA), .rx_data_valid(rx_data_valid), 
+									  .rx_data(rx_data));
+	 
 	 //////////////////////////////////////
 	 // Destination Address Checker
 	 //////////////////////////////////////
@@ -194,21 +190,21 @@ module rxReceiveEngine(rxclk_in, rxclk_2x,reset_in, rxd_in, rxc_in, rxStatRegPlu
     rxStateMachine statemachine(.rxclk(rxclk), .reset(reset), .recv_enable(recv_enable), .get_sfd(get_sfd), .local_invalid(local_invalid), 
 	                             .length_error(length_error), .crc_check_valid(crc_check_valid), .crc_check_invalid(crc_check_invalid), 
                                 .start_da(start_da), .start_lt(start_lt), .receiving(receiving),.good_frame_get(good_frame_get),
-										  .bad_frame_get(bad_frame_get), .get_error_code(get_error_code), .wait_crc_check(wait_crc_check), .get_terminator(get_terminator)
-										  );
+										  .bad_frame_get(bad_frame_get), .get_error_code(get_error_code), .wait_crc_check(wait_crc_check), .get_terminator(get_terminator),
+										  .receiving_d1(receiving_d1),.receiving_d2(receiving_d2));
 	 assign rx_good_frame = good_frame_get;
 	 assign rx_bad_frame = bad_frame_get;  
 
 	 /////////////////////////////////////
 	 // CRC Check module
 	 /////////////////////////////////////
-	 rxCRC crcmodule(.rxclk(rxclk), .reset(reset), .receiving_d2(receiving_d2), .get_terminator(get_terminator),.rxd64_d2(rxd64_d2),
-	                 .crc_check_invalid(crc_check_invalid), .crc_check_valid(crc_check_valid), .terminator_location(terminator_location),
-						  .wait_crc_check(wait_crc_check),.receiving_d1(receiving_d1));
+	 rxCRC crcmodule(.rxclk(rxclk), .reset(reset), .CRC_DATA(CRC_DATA), .get_terminator(get_terminator), .terminator_location(terminator_location),
+	                 .crc_check_invalid(crc_check_invalid), .crc_check_valid(crc_check_valid),.receiving(receiving),.receiving_d1(receiving_d1),
+						  .receiving_d2(receiving_d2));
     /////////////////////////////////////
 	 // RS Layer
 	 /////////////////////////////////////
-    rxRSLayer rx_rs(.rxclk(rxclk), .rxclk_180(rxclk_180), .rxclk_2x(rxclk_2x), .reset(reset), .link_fault(link_fault), .rxd64(rxd64), .rxc8(rxc8), .rxd_in(rxd_in), .rxc_in(rxc_in));
+    rxRSLayer rx_rs(.rxclk(rxclk), .rxclk_180(rxclk_180), .reset(reset), .link_fault(link_fault), .rxd64(rxd64), .rxc8(rxc8), .rxd_in(rxd_in), .rxc_in(rxc_in));
     
 	 /////////////////////////////////////
 	 // Statistic module
