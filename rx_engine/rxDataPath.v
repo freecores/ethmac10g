@@ -1,23 +1,52 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
+//////////////////////////////////////////////////////////////////////
+//// 																					////
+//// MODULE NAME: Receive Data Path											////
+//// 																					////
+//// DESCRIPTION: Data path of Receive Engine of 10 Gigabit       ////
+////     Ethernet MAC.															////
+////																					////
+//// This file is part of the 10 Gigabit Ethernet IP core project ////
+////  http://www.opencores.org/projects/ethmac10g/						////
+////																					////
+//// AUTHOR(S):																	////
+//// Zheng Cao			                                             ////
+////							                                    		////
+//////////////////////////////////////////////////////////////////////
+////																					////
+//// Copyright (c) 2005 AUTHORS.  All rights reserved.			   ////
+////																					////
+//// This source file may be used and distributed without         ////
+//// restriction provided that this copyright statement is not    ////
+//// removed from the file and that any derivative work contains  ////
+//// the original copyright notice and the associated disclaimer. ////
+////                                                              ////
+//// This source file is free software; you can redistribute it   ////
+//// and/or modify it under the terms of the GNU Lesser General   ////
+//// Public License as published by the Free Software Foundation; ////
+//// either version 2.1 of the License, or (at your option) any   ////
+//// later version.                                               ////
+////                                                              ////
+//// This source is distributed in the hope that it will be       ////
+//// useful, but WITHOUT ANY WARRANTY; without even the implied   ////
+//// warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      ////
+//// PURPOSE.  See the GNU Lesser General Public License for more ////
+//// details.                                                     ////
+////                                                              ////
+//// You should have received a copy of the GNU Lesser General    ////
+//// Public License along with this source; if not, download it   ////
+//// from http://www.opencores.org/lgpl.shtml   						////
+////																					////
+//////////////////////////////////////////////////////////////////////
+//
+// CVS REVISION HISTORY:
+//
+// $Log: not supported by cvs2svn $
+// Revision 1.1  2005/12/25 16:43:10  Zheng Cao
 // 
-// Create Date:    00:13:57 01/25/2006 
-// Design Name: 
-// Module Name:    rxDataPath 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
+// 
 //
-// Dependencies: 
-//
-// Revision: 
-// Revision 0.01 - File Created
-// Additional Comments: 
-//
-//////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
 
 `define START      8'hfb
 `define TERMINATE  8'hfd 	
@@ -28,11 +57,12 @@
 `define ALLZEROS   8'h00
 
 `define TAG_SIGN   16'h0081//8100
-`define PAUSE_SIGN 16'h1011//8808
+`define PAUSE_SIGN 32'h01000888//8808
 
 module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, start_lt, wait_crc_check, get_sfd, 
                   get_terminator, get_error_code, tagged_frame, pause_frame, da_addr, terminator_location, CRC_DATA, 
-						rx_data_valid, rx_data,get_terminator_d1, bad_frame_get, good_frame_get,check_reset,rx_good_frame,rx_bad_frame);
+						rx_data_valid, rx_data,get_terminator_d1, bad_frame_get, good_frame_get,check_reset,rx_good_frame,rx_bad_frame,
+				      fcTxPauseData);
     input rxclk;
     input reset;
     input [63:0] rxd64;
@@ -59,6 +89,7 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	 output check_reset;
 	 output rx_good_frame;
 	 output rx_bad_frame;
+	 output [31:0]fcTxPauseData;
 	 
 	 parameter TP = 1;
 	 parameter IDLE = 0, READ = 1, WAIT_TMP = 2, WAIT = 3;
@@ -70,6 +101,8 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	 reg [7:0] rxc8_d1, rxc8_d2, rxc8_d3;
 	 reg receiving_d1, receiving_d2;
 	 reg wait_crc_check_d1;
+	 
+	 assign fcTxPauseData = rxd64_d1[31:0];
 	 
 	 always@(posedge rxclk or posedge reset) begin
 	       if (reset)	begin		
@@ -83,6 +116,17 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 				 rxd64_d1<=#TP rxd64;
 				 rxd64_d2<=#TP rxd64_d1;
 				 rxd64_d3<=#TP rxd64_d2;
+//				 CRC_DATA <= {~rxd64_d2[63:32],rxd64_d2[31:0]}; 
+//				 CRC_DATA <= rxd64_d2;
+//             CRC_DATA <= {rxd64_d2[56],rxd64_d2[57],rxd64_d2[58],rxd64_d2[59],rxd64_d2[60],rxd64_d2[61],rxd64_d2[62],rxd64_d2[63],
+//				              rxd64_d2[48],rxd64_d2[49],rxd64_d2[50],rxd64_d2[51],rxd64_d2[52],rxd64_d2[53],rxd64_d2[54],rxd64_d2[55],
+//								  rxd64_d2[40],rxd64_d2[41],rxd64_d2[42],rxd64_d2[43],rxd64_d2[44],rxd64_d2[45],rxd64_d2[46],rxd64_d2[47],
+//								  rxd64_d2[32],rxd64_d2[33],rxd64_d2[34],rxd64_d2[35],rxd64_d2[36],rxd64_d2[37],rxd64_d2[38],rxd64_d2[39],
+//								  rxd64_d2[24],rxd64_d2[25],rxd64_d2[26],rxd64_d2[27],rxd64_d2[28],rxd64_d2[29],rxd64_d2[30],rxd64_d2[31],
+//								  rxd64_d2[16],rxd64_d2[17],rxd64_d2[18],rxd64_d2[19],rxd64_d2[20],rxd64_d2[21],rxd64_d2[22],rxd64_d2[23],
+//								  rxd64_d2[8],rxd64_d2[9],rxd64_d2[10],rxd64_d2[11],rxd64_d2[12],rxd64_d2[13],rxd64_d2[14],rxd64_d2[15],
+//								  rxd64_d2[0],rxd64_d2[1],rxd64_d2[2],rxd64_d2[3],rxd64_d2[4],rxd64_d2[5],rxd64_d2[6],rxd64_d2[7]};
+//				 CRC_DATA <=#TP {rxd64_d2[7:0],rxd64_d2[15:8],rxd64_d2[23:16],rxd64_d2[31:24],rxd64_d2[39:32],rxd64_d2[47:40],rxd64_d2[55:48],rxd64_d2[63:56]};
 				 CRC_DATA <={rxd64_d2[0],rxd64_d2[1],rxd64_d2[2],rxd64_d2[3],rxd64_d2[4],rxd64_d2[5],rxd64_d2[6],rxd64_d2[7],
 			rxd64_d2[8],rxd64_d2[9],rxd64_d2[10],rxd64_d2[11],rxd64_d2[12],rxd64_d2[13],rxd64_d2[14],rxd64_d2[15],
 			rxd64_d2[16],rxd64_d2[17],rxd64_d2[18],rxd64_d2[19],rxd64_d2[20],rxd64_d2[21],rxd64_d2[22],rxd64_d2[23],
@@ -262,7 +306,7 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	    if (reset)
 		    tagged_frame <=#TP 1'b0;
        else	if (start_lt)
-		    tagged_frame <=#TP (rxd64[47:32] == `TAG_SIGN); 
+		    tagged_frame <=#TP (rxd64[63:32] == `TAG_SIGN); 
 		 else								
 		    tagged_frame <=#TP tagged_frame;
 	 end
@@ -273,7 +317,7 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
        else	if (start_lt)
 		    pause_frame <=#TP (rxd64[47:32] == `PAUSE_SIGN); 
 		 else 
-		    pause_frame <=#TP pause_frame;
+		    pause_frame <=#TP 1'b0;
 	 end
 
   /////////////////////////////////////////////

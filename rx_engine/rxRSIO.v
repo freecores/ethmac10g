@@ -66,25 +66,25 @@ module rxRSIO(rxclk, rxclk_180, reset, rxd_in, rxc_in, rxd64, rxc8, local_fault,
 //	 end
 	 
 	 always@(posedge rxclk_180) begin
-//	       if (reset)begin
-//			    rxd64_in_tmp[63:32] <=#TP 0;
-//				 rxc8_in_tmp[7:4] <=#TP 0;
-//			 end
-//			 else begin
+	       if (reset)begin
+			    rxd64_in_tmp[63:32] <=#TP 0;
+				 rxc8_in_tmp[7:4] <=#TP 0;
+			 end
+			 else begin
 			    rxd64_in_tmp[63:32] <=#TP rxd_in;
 				 rxc8_in_tmp[7:4] <=#TP rxc_in;
-//			 end
+			 end
 	 end		 
 	 
 	 always@(posedge rxclk) begin
-//	       if (reset)begin
-//			    rxd64_in_tmp[31:0] <=#TP 0;
-//				 rxc8_in_tmp[3:0] <=#TP 0;
-//			 end
-//			 else begin
+	       if (reset)begin
+			    rxd64_in_tmp[31:0] <=#TP 0;
+				 rxc8_in_tmp[3:0] <=#TP 0;
+			 end
+			 else begin
 			    rxd64_in_tmp[31:0] <=#TP rxd_in;
 				 rxc8_in_tmp[3:0] <=#TP rxc_in;
-//			 end
+			 end
 	 end
 
     reg[63:0] rxd64;

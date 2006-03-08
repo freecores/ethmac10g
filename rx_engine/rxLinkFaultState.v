@@ -85,8 +85,8 @@ module rxLinkFaultState(rxclk, reset, local_fault, remote_fault, link_fault);
 						  end
 						  else if(~get_one_fault) begin
 								    reset_col_cnt <=#TP 0; 
-								 if (col_cnt_64)
-						  	  	    linkstate <=#TP IDLE;
+								    if (col_cnt_64)
+						  	  	       linkstate <=#TP IDLE;
 						  end
 						  else if(get_one_fault & ~no_new_type)
 						        linkstate <=#TP NewFaultType;

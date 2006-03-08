@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------------
--- $Revision: 1.9 $ $Date: 2006-02-08 13:34:28 $
+-- $Revision: 1.10 $ $Date: 2006-03-08 12:44:46 $
 -- Title      : Demo testbench
 -- Project    : 10 Gigabit Ethernet MAC
 -------------------------------------------------------------------------------
@@ -139,20 +139,20 @@ module testbench;
         frame0.data[30] = 32'h00000000;
         frame0.data[31] = 32'h00000000;
         frame0.ctrl[0]  = 4'b1111;
-        frame0.ctrl[1]  = 4'b1111;
-        frame0.ctrl[2]  = 4'b1111;
-        frame0.ctrl[3]  = 4'b1111;
-        frame0.ctrl[4]  = 4'b1111;
-        frame0.ctrl[5]  = 4'b1111;
-        frame0.ctrl[6]  = 4'b1111;
-        frame0.ctrl[7]  = 4'b1111;
-        frame0.ctrl[8]  = 4'b1111;
-        frame0.ctrl[9]  = 4'b1111;
-        frame0.ctrl[10] = 4'b1111;
-        frame0.ctrl[11] = 4'b1111;
-        frame0.ctrl[12] = 4'b1111;
-        frame0.ctrl[13] = 4'b1111;
-        frame0.ctrl[14] = 4'b1111;
+        frame0.ctrl[1]  = 4'b0111;// 4'b1111;
+        frame0.ctrl[2]  = 4'b0000;// 4'b1111;
+        frame0.ctrl[3]  = 4'b0000;// 4'b1111;
+        frame0.ctrl[4]  = 4'b0000;// 4'b1111;
+        frame0.ctrl[5]  = 4'b0000;// 4'b1111;
+        frame0.ctrl[6]  = 4'b0000;// 4'b1111;
+        frame0.ctrl[7]  = 4'b0000;// 4'b1111;
+        frame0.ctrl[8]  = 4'b0000;// 4'b1111;
+        frame0.ctrl[9]  = 4'b0000;// 4'b1111;
+        frame0.ctrl[10] = 4'b0000;// 4'b1111;
+        frame0.ctrl[11] = 4'b0000;// 4'b1111;
+        frame0.ctrl[12] = 4'b0000;// 4'b1111;
+        frame0.ctrl[13] = 4'b0000;// 4'b1111;
+        frame0.ctrl[14] = 4'b0000;//4'b1111;
         frame0.ctrl[15] = 4'b0000;
         frame0.ctrl[16] = 4'b0000;
         frame0.ctrl[17] = 4'b0000;
@@ -430,7 +430,7 @@ module testbench;
 		.rxTxLinkFault(rxTxLinkFault)
 	);
 
-   assign configuration_vector = {1'b0, 64'h0587010203040506};
+   assign configuration_vector = {1'b0, 64'h058f010203040506};
 
  /*---------------------------------------------------------------------------
   -- Clock drivers
@@ -487,6 +487,8 @@ module testbench;
          rx_stimulus_send_column(32'h555555FB, 4'b0001);
          rx_stimulus_send_column(32'hD5555555, 4'b0000);
          // send complete columns
+			for(I=0; I<16;I=I+1) begin
+         column_index = 0;
          while (rx_stimulus_working_frame.ctrl[column_index] === 4'b1111)
            begin
               rx_stimulus_send_column(rx_stimulus_working_frame.data[column_index],
@@ -494,6 +496,7 @@ module testbench;
               column_index = column_index + 1;
               byte_count = byte_count + 4;
            end
+			end  
          current_column_data = rx_stimulus_working_frame.data[column_index];//data which is not 64 bits
          current_column_ctrl = rx_stimulus_working_frame.ctrl[column_index];
          while (current_column_ctrl[lane_index]) //send out data which is not 64 bits
@@ -566,13 +569,9 @@ module testbench;
    initial
      begin : p_rx_stimulus
         integer I;
-        while (reset !== 0)
-          rx_stimulus_send_idle;
-          rx_stimulus_send_idle;
         for (I = 0; I < 100; I = I + 1)
           rx_stimulus_send_idle;
         rx_stimulus_send_frame(frame0.tobits(0));
-        rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_frame(frame1.tobits(0));
