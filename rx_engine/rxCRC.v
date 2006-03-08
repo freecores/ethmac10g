@@ -19,7 +19,7 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////
 `define ALLONES 64'hffffffffffffffff
-module rxCRC(rxclk, reset, receiving, receiving_d1, receiving_d2, CRC_DATA, get_terminator, crc_check_invalid, crc_check_valid, terminator_location);
+module rxCRC(rxclk, reset, receiving, receiving_d1, receiving_d2, CRC_DATA, get_terminator, get_terminator_d1, wait_crc_check,crc_check_invalid, crc_check_valid, terminator_location);
     input rxclk;
     input reset;
 	 input get_terminator;
@@ -27,9 +27,11 @@ module rxCRC(rxclk, reset, receiving, receiving_d1, receiving_d2, CRC_DATA, get_
 	 input receiving;
 	 input receiving_d1,receiving_d2;
 	 input [2:0] terminator_location;
+	 input wait_crc_check;
 
 	 output crc_check_invalid;
 	 output crc_check_valid;
+	 output get_terminator_d1;
 
 	 parameter TP = 1;
 
@@ -105,6 +107,16 @@ module rxCRC(rxclk, reset, receiving, receiving_d1, receiving_d2, CRC_DATA, get_
            start_tmp <=#TP 1'b0;
 	 end		  
 	 
+	 reg do_crc_check;
+	 always@(posedge rxclk or posedge reset) begin
+	      if (reset)
+			   do_crc_check <=#TP 0;
+			else if(terminator_location == 0)
+          	do_crc_check <=#TP get_terminator_d2;
+			else 
+			   do_crc_check <=#TP wait_crc_check & (bytes_cnt==1);
+    end				
+	 
 	 wire[31:0] crc_tmp;
 	 CRC32_D8  crc8(.DATA_IN(CRC_DATA_TMP), .CLK(rxclk), .RESET(reset), .START(start_tmp), .LOAD(~start_tmp), .CRC_IN(crc_gen), .CRC_OUT(crc_tmp));		 
 	
@@ -113,7 +125,7 @@ module rxCRC(rxclk, reset, receiving, receiving_d1, receiving_d2, CRC_DATA, get_
 	 ////////////////////////////////////////////////////////////////////////////////////////////
 	 wire crc_check_valid, crc_check_invalid;
 
-	 assign crc_check_valid  = (~bytes_cnt) & (crc_tmp==32'hc704dd7b);
-	 assign crc_check_invalid =(~bytes_cnt) & (crc_tmp!=32'hc704dd7b);
+	 assign crc_check_valid  = wait_crc_check & do_crc_check & (crc_tmp==32'hc704dd7b);
+	 assign crc_check_invalid = wait_crc_check & do_crc_check  & (crc_tmp!=32'hc704dd7b);
 
 endmodule

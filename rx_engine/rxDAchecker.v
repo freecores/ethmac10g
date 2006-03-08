@@ -53,6 +53,6 @@ module rxDAchecker(rxclk,reset,local_invalid, broad_valid, multi_valid, MAC_Addr
 			 end
 	 end
 
-	 assign local_invalid = ~local_valid & ~multi_valid & ~broad_valid;
+	 assign local_invalid = 1'b0;//~local_valid & ~multi_valid & ~broad_valid;
 
 endmodule

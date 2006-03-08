@@ -65,39 +65,39 @@ module rxRSIO(rxclk, rxclk_180, reset, rxd_in, rxc_in, rxd64, rxc8, local_fault,
 //             get_align_reg <=#TP get_align_reg;
 //	 end
 	 
-	 always@(posedge rxclk_180 or posedge reset) begin
-	       if (reset)begin
-			    rxd64_in_tmp[63:32] <=#TP 0;
-				 rxc8_in_tmp[7:4] <=#TP 0;
-			 end
-			 else begin
+	 always@(posedge rxclk_180) begin
+//	       if (reset)begin
+//			    rxd64_in_tmp[63:32] <=#TP 0;
+//				 rxc8_in_tmp[7:4] <=#TP 0;
+//			 end
+//			 else begin
 			    rxd64_in_tmp[63:32] <=#TP rxd_in;
 				 rxc8_in_tmp[7:4] <=#TP rxc_in;
-			 end
+//			 end
 	 end		 
 	 
-	 always@(posedge rxclk or posedge reset) begin
-	       if (reset)begin
-			    rxd64_in_tmp[31:0] <=#TP 0;
-				 rxc8_in_tmp[3:0] <=#TP 0;
-			 end
-			 else begin
+	 always@(posedge rxclk) begin
+//	       if (reset)begin
+//			    rxd64_in_tmp[31:0] <=#TP 0;
+//				 rxc8_in_tmp[3:0] <=#TP 0;
+//			 end
+//			 else begin
 			    rxd64_in_tmp[31:0] <=#TP rxd_in;
 				 rxc8_in_tmp[3:0] <=#TP rxc_in;
-			 end
+//			 end
 	 end
 
     reg[63:0] rxd64;
 	 reg[7:0] rxc8;
-	 always@(posedge rxclk or posedge reset) begin
-	       if(reset) begin
-			    rxc8<=#TP 0;
-			    rxd64 <=#TP 0;
-			 end
-			 else	begin
+	 always@(posedge rxclk) begin
+//	       if(reset) begin
+//			    rxc8<=#TP 0;
+//			    rxd64 <=#TP 0;
+//			 end
+//			 else	begin
 			    rxc8<=#TP rxc8_in_tmp;
 			    rxd64 <=#TP rxd64_in_tmp;
-			 end
+//			 end
 	 end
 
 

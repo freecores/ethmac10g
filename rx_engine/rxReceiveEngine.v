@@ -27,7 +27,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_o
     input [3:0] rxc_in;
 	 output reset_out;
     output [17:0] rxStatRegPlus;	
-    input [52:0] cfgRxRegData_in;
+    input [64:0] cfgRxRegData_in;
     output [63:0] rx_data;
     output [7:0] rx_data_valid;
     output rx_good_frame;
@@ -38,6 +38,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_o
 	 parameter TP =1;
 
     wire rxclk;
+	 wire rxclk_180;
 	 wire locked;
 	 wire reset_dcm;
 	 wire reset;
@@ -56,7 +57,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_o
 //	 wire [15:0] lt_data;
 	 wire [11:0] frame_cnt;
 	 wire [2:0]  terminator_location;
-	 wire get_sfd,get_error_code,get_terminator;
+	 wire get_sfd,get_error_code,get_terminator, get_terminator_d1;
 	 wire receiving;
 	 wire receiving_d1,receiving_d2;
 
@@ -81,6 +82,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_o
 
 	 wire crc_check_valid;
 	 wire crc_check_invalid;
+	 wire check_reset;
 
 	 wire [1:0]link_fault;
 
@@ -91,15 +93,6 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_o
 	 wire [63:0] rxd64;
 	 wire [63:0] CRC_DATA;
 	 wire [7:0] rxc8;
-//	 reg [52:0]cfgRxRegData;
-//	 always@(posedge rxclk or posedge reset) begin
-//	       if (reset)	begin		
-//				 cfgRxRegData <=#TP 0;
-//			 end
-//			 else begin
-//				 cfgRxRegData <=#TP cfgRxRegData_in;
-//			 end
-//	 end
 
 	 assign rxTxLinkFault = link_fault;
 	 //////////////////////////////////////////
@@ -116,12 +109,12 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_o
 	           recv_rst <= 0;
 			  end
 			  else begin
-			     MAC_Addr <= {cfgRxRegData_in[52:37], cfgRxRegData_in[31:0]};
-	           vlan_enable <= cfgRxRegData_in[36];
-	           recv_enable <= cfgRxRegData_in[35];
-	           inband_fcs  <= cfgRxRegData_in[34];
-	           jumbo_enable <= cfgRxRegData_in[33];
-	           recv_rst <= cfgRxRegData_in[32];
+			     MAC_Addr <= cfgRxRegData_in[47:0];
+	           vlan_enable <= cfgRxRegData_in[48];
+	           recv_enable <= cfgRxRegData_in[49];
+	           inband_fcs  <= cfgRxRegData_in[50];
+	           jumbo_enable <= cfgRxRegData_in[51];
+	           recv_rst <= cfgRxRegData_in[52];
 			  end
     end			  
     
@@ -155,7 +148,8 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_o
 	                          .start_da(start_da), .start_lt(start_lt), .wait_crc_check(wait_crc_check), .get_sfd(get_sfd), 
                              .get_terminator(get_terminator), .get_error_code(get_error_code), .tagged_frame(tagged_frame), .pause_frame(pause_frame),
 									  .da_addr(da_addr), .terminator_location(terminator_location), .CRC_DATA(CRC_DATA), .rx_data_valid(rx_data_valid), 
-									  .rx_data(rx_data));
+									  .rx_data(rx_data), .get_terminator_d1(get_terminator_d1),.bad_frame_get(bad_frame_get),.good_frame_get(good_frame_get),
+									  .check_reset(check_reset),.rx_good_frame(rx_good_frame),.rx_bad_frame(rx_bad_frame));
 	 
 	 //////////////////////////////////////
 	 // Destination Address Checker
@@ -191,16 +185,14 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,reset_o
 	                             .length_error(length_error), .crc_check_valid(crc_check_valid), .crc_check_invalid(crc_check_invalid), 
                                 .start_da(start_da), .start_lt(start_lt), .receiving(receiving),.good_frame_get(good_frame_get),
 										  .bad_frame_get(bad_frame_get), .get_error_code(get_error_code), .wait_crc_check(wait_crc_check), .get_terminator(get_terminator),
-										  .receiving_d1(receiving_d1),.receiving_d2(receiving_d2));
-	 assign rx_good_frame = good_frame_get;
-	 assign rx_bad_frame = bad_frame_get;  
+										  .receiving_d1(receiving_d1),.receiving_d2(receiving_d2),.check_reset(check_reset));
 
 	 /////////////////////////////////////
 	 // CRC Check module
 	 /////////////////////////////////////
 	 rxCRC crcmodule(.rxclk(rxclk), .reset(reset), .CRC_DATA(CRC_DATA), .get_terminator(get_terminator), .terminator_location(terminator_location),
 	                 .crc_check_invalid(crc_check_invalid), .crc_check_valid(crc_check_valid),.receiving(receiving),.receiving_d1(receiving_d1),
-						  .receiving_d2(receiving_d2));
+						  .receiving_d2(receiving_d2), .get_terminator_d1(get_terminator_d1), .wait_crc_check(wait_crc_check));
     /////////////////////////////////////
 	 // RS Layer
 	 /////////////////////////////////////

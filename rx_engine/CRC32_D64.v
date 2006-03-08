@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 ///////////////////////////////////////////////////////////////////////
 // File:  CRC32_D64.v                             
 // Date:  Sun Nov 27 19:32:12 2005                                                      
@@ -35,10 +36,12 @@ module CRC32_D64(DATA_IN, CLK, RESET, START, init, CRC_OUT);
 always @(posedge CLK)
   begin
     if (RESET) begin
+//	     CRC_OUT = 0;
 	     CRC_OUT = 32'hffffffff;
     end
     else if (init) begin
 	     CRC_OUT = 32'hffffffff;
+//	     CRC_OUT = 0;
 	 end
     else if (START) begin 
 		  CRC_OUT = nextCRC32_D64(DATA_IN, CRC_OUT);

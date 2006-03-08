@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module CRC32_D8(DATA_IN, CLK, RESET, START, LOAD, CRC_IN, CRC_OUT);
 
   input [7:0] DATA_IN;

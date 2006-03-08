@@ -4,14 +4,14 @@
 //   ____  ____ 
 //  /   /\/   / 
 // /___/  \  /    Vendor: Xilinx 
-// \   \   \/     Version : 8.1i
+// \   \   \/     Version : 8.1.01i
 //  \   \         Application : xaw2verilog
 //  /   /         Filename : dcm0.v
-// /___/   /\     Timestamp : 01/26/2006 15:09:20
+// /___/   /\     Timestamp : 02/07/2006 20:12:33
 // \   \  /  \ 
 //  \___\/\___\ 
 //
-//Command: xaw2verilog -intstyle F:/10G/ethmac10g_v2/dcm0.xaw -st dcm0.v
+//Command: xaw2verilog -intstyle F:/10G/rx_engine_v2/dcm0.xaw -st dcm0.v
 //Design Name: dcm0
 //Device: xc2vp20-6fg676
 //

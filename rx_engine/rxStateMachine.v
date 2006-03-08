@@ -20,7 +20,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, length_error, crc_check_valid, crc_check_invalid, 
        start_da, start_lt, receiving, receiving_d1, receiving_d2,good_frame_get, bad_frame_get, get_error_code, wait_crc_check,
-		 get_terminator);
+		 get_terminator,check_reset);
    
 	 input rxclk;
     input reset;
@@ -41,6 +41,8 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, length_
 	 input crc_check_valid;//Indicate the frame passed CRC Check;
 	 input crc_check_invalid;//Indicate the frame failed in CRC Check;
 	 input get_error_code;
+	 
+	 input check_reset;
 	
 	 //DA field
 	 output start_da;// Start to receive Destination Address;
@@ -74,19 +76,19 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, length_
 			end
 			else begin	 
 			    case (rxstate)
-			      IDLE: begin 
+			      IDLE: begin //5'b00000;
 			       		if (get_sfd && recv_enable)
 				       		rxstate_next <=#TP rxReceiveDA;
 							else
 							   rxstate_next <=#TP IDLE;
 					end
-           		rxReceiveDA: begin	  
+           		rxReceiveDA: begin	//5'b00001  
 				   		rxstate_next <=#TP rxReceiveLT;
 					end
-            	rxReceiveLT: begin			 
+            	rxReceiveLT: begin	//5'b00010		 
 					 		rxstate_next <=#TP rxReceiveData;
             	end
-					rxReceiveData: begin
+					rxReceiveData: begin //5'b00100
 					 		if (local_invalid |length_error| get_error_code) 
 					     		rxstate_next <=#TP rxGetError;
 							else if (get_terminator)
@@ -94,10 +96,16 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, length_
 							else
 							   rxstate_next <=#TP rxReceiveData;
 					end
-					rxGetError: begin
+					rxGetError: begin //5'b01000
+						if (get_sfd && recv_enable)
+				       	rxstate_next <=#TP rxReceiveDA;
+						else
 					      rxstate_next <=#TP IDLE;
 					end
-					rxIFGWait : begin
+					rxIFGWait : begin //5'b10000;
+						if (get_sfd && recv_enable)
+				       		rxstate_next <=#TP rxReceiveDA;
+						else
 					      rxstate_next <=#TP IDLE;
 					end
 			   endcase
@@ -131,7 +139,7 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, length_
 	 always@(posedge rxclk or posedge reset) begin
 	      if (reset)
 			   wait_crc_check <=#TP 0;
-			else if (rxstate[3])
+			else if (rxstate[4])
 			   wait_crc_check <=#TP 1'b1;
 		   else if (crc_check_valid || crc_check_invalid||length_error)
 			   wait_crc_check <=#TP 1'b0;
@@ -144,9 +152,17 @@ module rxStateMachine(rxclk, reset, recv_enable, get_sfd, local_invalid, length_
 			    bad_frame_get <=#TP 0;
 				 good_frame_get <=#TP 0;
 			 end
-			 else begin
-			    bad_frame_get <=#TP rxstate[3] || crc_check_invalid || length_error;
-				 good_frame_get <=#TP crc_check_valid;
+			 else if(rxstate[3] || crc_check_invalid || length_error)begin
+			    bad_frame_get <=#TP 1'b1;
+			    good_frame_get <=#TP 1'b0;
 			 end
+          else if (crc_check_valid)begin			 
+				 good_frame_get <=#TP 1'b1;
+				 bad_frame_get <=#TP 1'b0;
+			 end	
+			 else if (check_reset)begin
+			    good_frame_get <=#TP 1'b0;
+				 bad_frame_get <=#TP 1'b0;
+			 end	 
 	 end
 endmodule
