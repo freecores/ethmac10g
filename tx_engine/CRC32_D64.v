@@ -12,17 +12,23 @@ module CRC32_D64(DATA_IN, CLK, RESET, START, CRC_OUT);
 
 reg start_int;
 reg startCRC;
-reg [63:0] data_del;
+wire [63:0] data_del;
 
-always @(posedge CLK)
-begin 
-   start_int <= START;
-   data_del <= DATA_IN;
-end
 
-always @(start_int or START)
+assign   data_del = {DATA_IN[0],DATA_IN[1],DATA_IN[2],DATA_IN[3],DATA_IN[4],DATA_IN[5],DATA_IN[6],DATA_IN[7],
+              DATA_IN[8],DATA_IN[9],DATA_IN[10],DATA_IN[11],DATA_IN[12],DATA_IN[13],DATA_IN[14],DATA_IN[15],
+              DATA_IN[16],DATA_IN[17],DATA_IN[18],DATA_IN[19],DATA_IN[20],DATA_IN[21],DATA_IN[22],DATA_IN[23],
+              DATA_IN[24],DATA_IN[25],DATA_IN[26],DATA_IN[27],DATA_IN[28],DATA_IN[29],DATA_IN[30],DATA_IN[31],
+              DATA_IN[32],DATA_IN[33],DATA_IN[34],DATA_IN[35],DATA_IN[36],DATA_IN[37],DATA_IN[38],DATA_IN[39],
+              DATA_IN[40],DATA_IN[41],DATA_IN[42],DATA_IN[43],DATA_IN[44],DATA_IN[45],DATA_IN[46],DATA_IN[47],
+              DATA_IN[48],DATA_IN[49],DATA_IN[50],DATA_IN[51],DATA_IN[52],DATA_IN[53],DATA_IN[54],DATA_IN[55],
+              DATA_IN[56],DATA_IN[57],DATA_IN[58],DATA_IN[59],DATA_IN[60],DATA_IN[61],DATA_IN[62],DATA_IN[63]}; 
+
+//assign   data_del = 64'h1000000000000000;
+
+always @(START)
 begin
-   startCRC <= START; //start_int | START;
+   startCRC <= START; 
 end
 
 always @(posedge CLK or posedge RESET)
@@ -33,9 +39,7 @@ always @(posedge CLK or posedge RESET)
     end
     
     else if (startCRC == 1) begin 
-		    CRC_OUT <= nextCRC32_D64(DATA_IN, CRC_OUT);
-
-
+		    CRC_OUT <= nextCRC32_D64(data_del, CRC_OUT);
     end 
     	
   end

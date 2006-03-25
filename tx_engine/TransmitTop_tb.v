@@ -27,6 +27,7 @@ reg [31:0] TX_CFG_REG_VALUE;
 reg TX_CFG_REG_VALID;
 
 //output to stat register
+wire TX_STATS_VALID;
 wire [9:0] TXSTATREGPLUS; // a pulse for each reg for stats
 wire [63:0] TXD;
 wire [7:0] TXC;
@@ -55,18 +56,18 @@ initial begin
       TX_DATA_VALID <= 8'hFF;
 	D_START <= 1;
   #20 TX_START <= 0;
-  #400 	TX_DATA_VALID <= 8'h00;
+  #400 	//TX_DATA_VALID <= 8'h00;
         //FC_TX_PAUSEVALID <= 1;
         //FC_TX_PAUSEDATA <= 30;
-          FC_TRANS_PAUSEDATA <= 30;
-          FC_TRANS_PAUSEVAL <= 1;
-	// TX_DATA_VALID <= 8'h7f;
+        //  FC_TRANS_PAUSEDATA <= 30;
+        //  FC_TRANS_PAUSEVAL <= 1;
+	 TX_DATA_VALID <= 8'h7f;
   #10 	TX_DATA_VALID <= 8'h00;
 		D_START = 0;
         //FC_TX_PAUSEVALID <= 0;
         //FC_TX_PAUSEDATA <= 0;
-          FC_TRANS_PAUSEDATA <= 0;
-  	  FC_TRANS_PAUSEVAL <= 0;
+        //  FC_TRANS_PAUSEDATA <= 0;
+  	//  FC_TRANS_PAUSEVAL <= 0;
   #20 TX_START <= 1;
       TX_DATA_VALID <= 8'hFF;
 	D_START = 1;
@@ -141,6 +142,7 @@ TX_UNDERRUN,
 TX_IFG_DELAY,
 RXTXLINKFAULT, 
 LOCALLINKFAULT,
+TX_STATS_VALID,
 TXSTATREGPLUS,
 TXD, 
 TXC, 

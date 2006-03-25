@@ -1,10 +1,10 @@
-module byte_count_module(CLK, RESET, START, PARALLEL_CNT, BYTE_COUNTER);
+module byte_count_module(CLK, RESET, START, BYTE_COUNTER);
 
 // Ports declaration
 input CLK;
 input RESET;
 input START;
-input PARALLEL_CNT;
+
 
 
 output [15:0] BYTE_COUNTER;
@@ -20,18 +20,12 @@ begin
 
    // the ack is delayed which starts the counter
    else if (START == 1) begin
-       if (PARALLEL_CNT) begin
-            counter = counter + 8;
-       end
-       
-	 else begin
-      	counter = counter + 1;
-       end
+       counter = counter + 8;
    end
+
+   BYTE_COUNTER = counter;
 end
 
-always @(counter) begin
-  BYTE_COUNTER = counter;
-end
+
 endmodule // End of Module 
 
