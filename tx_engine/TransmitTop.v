@@ -626,7 +626,10 @@ end
 
 always @(posedge TX_CLK)
 begin
-  if (reset_int | append_end_frame) begin
+  if (reset_int) begin
+    tx_undderrun_int <= 0;
+  end
+  else if (append_end_frame)
     tx_undderrun_int <= 0;
   end
   else if (TX_UNDERRUN == 1) begin
@@ -637,7 +640,10 @@ end
 //Indicate an error
 always @(posedge TX_CLK or posedge reset_int)
 begin
-  if (reset_int | append_end_frame | reset_err_pause) begin
+  if (reset_int) begin
+     insert_error <= 0;
+  end
+  else if (append_end_frame | reset_err_pause) begin
      insert_error <= 0;
   end
   else if (load_CRC8) begin
@@ -672,7 +678,11 @@ end
 //use for delaying the ack signal when pause is required
 always @(posedge TX_CLK or posedge reset_int)
 begin
-   if (reset_int | TX_ACK) begin
+   if (reset_int) begin
+     apply_pause_delay <= 0;
+     store_pause_frame <= 0;
+   end
+   else if (TX_ACK) begin
      apply_pause_delay <= 0;
      store_pause_frame <= 0;
    end
