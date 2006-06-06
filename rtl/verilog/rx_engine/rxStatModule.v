@@ -75,11 +75,11 @@ module rxStatModule(rxclk, reset, good_frame_get,crc_check_invalid, large_error,
 	 input length_1024_max;
 	 input jumbo_frame;
 	 input get_error_code;
-	 output [17:0] rxStatRegPlus;
+	 output [18:0] rxStatRegPlus;
 
 	 parameter TP =1;
 
-	 wire[17:0] rxStatRegPlus_tmp;
+	 wire[18:0] rxStatRegPlus_tmp;
 
 	 ////////////////////////////////////////////
 	 // Count for Frames Received OK
@@ -140,38 +140,44 @@ module rxStatModule(rxclk, reset, good_frame_get,crc_check_invalid, large_error,
 	 // Count for Length/Type Out of Range
 	 //////////////////////////////////////////////
 	 assign rxStatRegPlus_tmp[11] = large_error;
+	 
+	 
+	 //////////////////////////////////////////////
+	 // Count for Pause Frames Received OK
+	 //////////////////////////////////////////////
+//	 assign rxStatRegPlus_tmp[12] = tagged_frame & good_frame_get;
 
 	 //////////////////////////////////////////////
 	 // Count for Pause Frames Received OK
 	 //////////////////////////////////////////////
-	 assign rxStatRegPlus_tmp[12] = pause_frame & good_frame_get;
+	 assign rxStatRegPlus_tmp[13] = pause_frame & good_frame_get;
 
 	 /////////////////////////////////////////////////////////////
 	 // Count for Control Frames Received with Unsupported Opcode.
 	 /////////////////////////////////////////////////////////////
-   // assign rxStatRegPlus_tmp[13] = pause_frame & good_frame_get;
+   // assign rxStatRegPlus_tmp[14] = pause_frame & good_frame_get;
 
 	 ///////////////////////////////////////////////
 	 // Count for Oversize Frames Received OK
 	 ///////////////////////////////////////////////
-	 assign rxStatRegPlus_tmp[14] = jumbo_frame & good_frame_get;
+	 assign rxStatRegPlus_tmp[15] = jumbo_frame & good_frame_get;
 
 	 ///////////////////////////////////////////////
 	 // Count for Undersized Frames Received
 	 ///////////////////////////////////////////////
-	 assign rxStatRegPlus_tmp[15] = small_error;
+	 assign rxStatRegPlus_tmp[16] = small_error;
 
 	 ///////////////////////////////////////////////
 	 // Count for Fragment Frames Received
 	 ///////////////////////////////////////////////
-	 assign rxStatRegPlus_tmp[16] = receiving & get_error_code;
+	 assign rxStatRegPlus_tmp[17] = receiving & get_error_code;
 
 	 ///////////////////////////////////////////////
 	 // Count for Number of Bytes Received
 	 ///////////////////////////////////////////////
-	 assign rxStatRegPlus_tmp[17] = receiving;
+	 assign rxStatRegPlus_tmp[18] = receiving;
 
-	 reg[17:0] rxStatRegPlus;
+	 reg[18:0] rxStatRegPlus;
 	 always@(posedge rxclk or posedge reset) begin
 	       if(reset)
 			   rxStatRegPlus <=#TP 0;
