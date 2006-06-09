@@ -441,7 +441,6 @@ begin
       shift_pause_data <= 0;
     end 
     
-    
     if (pause_frame_counter == 7) begin
       shift_pause_valid <= 8'h0f;
     end
@@ -451,7 +450,6 @@ begin
     else begin
       shift_pause_valid <= 0;
     end 
-    
     shift_pause_valid_del <= shift_pause_valid;
   end
   else begin
@@ -529,12 +527,13 @@ begin
   else begin
     txstatplus_int <= 0;
   end
+end
 
+always @(posedge TX_CLK)
+begin 
   TXSTATREGPLUS <= txstatplus_int;
   TX_STATS_VALID <= append_end_frame;
 end
-
-
 
 
 //input [31:0] TX_CFG_REG_VALUE;
@@ -629,10 +628,10 @@ begin
   if (reset_int) begin
     tx_undderrun_int <= 0;
   end
-  else if (append_end_frame)
+  else if (append_end_frame)begin
     tx_undderrun_int <= 0;
   end
-  else if (TX_UNDERRUN == 1) begin
+  else if (TX_UNDERRUN) begin
     tx_undderrun_int <= 1;
   end
 end
@@ -735,7 +734,6 @@ begin
    end
   end
   else if (transmit_pause_frame_del) begin
-     shift_pause_valid_del <= shift_pause_valid;
      TX_DATA_VALID_REG <= shift_pause_valid_del;
   end
   else begin
@@ -1337,7 +1335,10 @@ begin
   else if (start_CRC8) begin
      final_byte_count <= final_byte_count + 1;
   end
+end
 
+always @(posedge TX_CLK)
+begin
   if (transmit_pause_frame) begin
     byte_count_stat = 512;
   end
@@ -1362,13 +1363,13 @@ begin
   end
 end
 
-
-always @(posedge TX_CLK or posedge reset_int)
-begin
-  if (reset_int) begin
-    vlan_enabled_int <= 0;
-  end
-end
+//
+//always @(posedge TX_CLK or posedge reset_int)
+//begin
+//  if (reset_int) begin
+//    vlan_enabled_int <= 0;
+//  end
+//end
 
 // VLAN field - 8100 at second 64 bit data at 32:47 and V1 V2 is at 48:63
 // length field at third 64 bit data at 0:15
@@ -1378,10 +1379,8 @@ begin
    if (reset_int) begin
       length_register <= 0;
    end
-   if (vlan_enabled_int) begin
-     if (BYTE_COUNTER == 16) begin   
+   else if (vlan_enabled_int & BYTE_COUNTER == 16) begin 
        length_register <= TX_DATA_REG[15:0];
-     end
    end
    else begin
       if (BYTE_COUNTER == 8) begin
