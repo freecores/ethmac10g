@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------------
--- $Revision: 1.1 $ $Date: 2006-06-11 11:53:36 $
+-- $Revision: 1.2 $ $Date: 2006-06-11 12:14:55 $
 -- Title      : Demo testbench
 -- Project    : 10 Gigabit Ethernet MAC
 -------------------------------------------------------------------------------
@@ -227,8 +227,8 @@ module testbench;
         frame1.ctrl[17] = 4'b1111;
         frame1.ctrl[18] = 4'b1111;
         frame1.ctrl[19] = 4'b1111;
-        frame1.ctrl[20] = 4'b1111;
-        frame1.ctrl[21] = 4'b0011;
+        frame1.ctrl[20] = 4'b0111;
+        frame1.ctrl[21] = 4'b0000;
         frame1.ctrl[22] = 4'b0000;
         frame1.ctrl[23] = 4'b0000;
         frame1.ctrl[24] = 4'b0000;
@@ -398,16 +398,13 @@ module testbench;
   wire rx_good_frame;
   wire rx_bad_frame;
   wire rx_clk;
-  wire [28:0] rx_statistics_vector;
-  wire rx_statistics_valid;
+  wire [17:0] rxStatRegPlus;
+  wire [2:0] rxCfgofRS;
+  wire [1:0] rxTxLinkFault;
   wire [64:0] configuration_vector;
   reg  xgmii_rx_clk;
   reg  [31:0] xgmii_rxd;
   reg  [3:0]  xgmii_rxc;
-
-   reg   rx_monitor_finished;
-   wire  simulation_finished;
-   
 
   /*---------------------------------------------------------------------------
   -- wire up Device Under Test
@@ -574,7 +571,6 @@ module testbench;
         rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_frame(frame1.tobits(0));
-        rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_frame(frame2.tobits(0));

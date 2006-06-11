@@ -51,13 +51,13 @@
 `include "xgiga_define.v"
 
 module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,
-                       cfgRxRegData_in, rx_data, rx_data_valid, rx_good_frame,
+                       cfgRxRegData_in, rx_data, rx_data_valid, rx_good_frame, rxclk_out,
                        rx_bad_frame, rxCfgofRS, rxTxLinkFault);//, fcTxPauseData, fcTxPauseValid);
     input rxclk_in; //Input clock of receive engine
     input reset_in; //Globle reset of receive engine
     input [31:0] rxd_in; //XGMII RXD
     input [3:0] rxc_in;  //XGMII RXC
-    output [18:0] rxStatRegPlus; //Signals for statistics	
+    output [17:0] rxStatRegPlus; //Signals for statistics	
     input [64:0] cfgRxRegData_in; //Signals for configuration
     output [63:0] rx_data; //Received data sent to upper layer
     output [7:0] rx_data_valid; //Receive data valid indicator
@@ -65,6 +65,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,
     output rx_bad_frame; //Indicate that a bad frame has been received
 	 output[2:0] rxCfgofRS; //
     output [1:0] rxTxLinkFault;
+	 output rxclk_out;
 //	 output [31:0] fcTxPauseData;
 //	 output fcTxPauseValid;
 
@@ -209,7 +210,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,
 	 ////////////////////////////////////////
 	 // Receive Clock Generator
 	 //////////////////////////////////////// 
-
+    assign rxclk_out = rxclk;
 	 rxClkgen rxclk_gen(.rxclk_in(rxclk_in),
 	                    .reset(reset_dcm),
 							  .rxclk(rxclk),    // system clock
