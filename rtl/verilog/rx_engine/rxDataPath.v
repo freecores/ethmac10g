@@ -85,7 +85,7 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 //	 output [31:0]fcTxPauseData;
 	 
 	 parameter TP = 1;
-	 parameter IDLE = 0, READ = 1, WAIT_TMP = 2, WAIT = 3;
+	 parameter IDLE = 0, READ = 2, WAIT_TMP = 3, WAIT = 1;
 	 
 	 //////////////////////////////////////////////
 	 // Pipe Line Stage
@@ -280,15 +280,15 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	 // Get Length/Type Field
 	 //////////////////////////////////////
 
-//	 reg[15:0] lt_data; 
-//	 always@(posedge rxclk or posedge reset)begin
-//       if (reset) 
-//	       lt_data <=#TP 0;
-//   	 else if (start_lt) 
-//	       lt_data <=#TP rxd64_d1[47:32];
-//		 else
-//		    lt_data <=#TP lt_data;
-//    end
+	 reg[15:0] lt_data; 
+	 always@(posedge rxclk or posedge reset)begin
+       if (reset) 
+	       lt_data <=#TP 0;
+   	 else if (start_lt) 
+	       lt_data <=#TP rxd64_d1[47:32];
+		 else
+		    lt_data <=#TP lt_data;
+    end
 
     //tagged frame indicator
 	 always@(posedge rxclk or posedge reset) begin
@@ -353,59 +353,56 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	 
 	 reg fifo_rd_en;
 	 reg[1:0] fifo_state;
-	 reg rx_good_frame;
-	 reg rx_bad_frame;
+	 wire rx_good_frame;
+	 wire rx_bad_frame;
 	 reg check_reset;
 	 always@(posedge rxclk or posedge reset) begin
 	       if(reset) begin
 			   fifo_rd_en <= 1'b0;
 			   fifo_state <= IDLE;
-				rx_good_frame <= 1'b0;
-				rx_bad_frame <= 1'b0;
 				check_reset <= 1'b0;
 			 end
 			 else
             case (fifo_state) 
               IDLE: begin
-				      rx_good_frame <= 1'b0;
-						rx_bad_frame <= 1'b0;
 						check_reset <= 1'b0;
                   fifo_state <= IDLE;
 						fifo_rd_en <= 1'b0;
                   if(~rxfifo_empty) begin 
                     fifo_rd_en <= 1'b1;
-                    fifo_state <= READ;
+                    fifo_state <= WAIT_TMP;
 						end  
               end
               READ: begin
 				      check_reset <= 1'b0;
                   fifo_rd_en <= 1'b1;
-						rx_good_frame <= 1'b0;
-						rx_bad_frame <= 1'b0;
 						fifo_state <= READ;
-                  if(rx_data_valid_tmp!=8'hff)						
-                    fifo_state <= WAIT_TMP;
+                  if(rx_data_valid_tmp!=8'hff) begin						
+                    fifo_state <= WAIT;
+						  fifo_rd_en <= 1'b0;
+						end
 				  end		  
 				  WAIT_TMP: begin
-				      if(rx_data_valid_tmp!=8'hff)
-                    fifo_state <= WAIT;
+                  if(rx_data_valid_tmp == 8'hff)
+                     fifo_state <=READ;
+						else 
+						   fifo_state <=WAIT_TMP;
               end						  
 				  WAIT: begin		
-                  rx_good_frame <= 1'b0;
-                  rx_bad_frame <= 1'b0;
                   fifo_state <= WAIT;
                   check_reset <= 1'b0;	
                   fifo_rd_en <= 1'b0;							
                   if(bad_frame_get | good_frame_get)begin
-						  rx_good_frame <= good_frame_get;
-						  rx_bad_frame <= bad_frame_get;
                     fifo_state <= IDLE;
 						  check_reset <= 1'b1;
 						end  
               end
             endcase
     end
-
+    
+	 assign rx_good_frame = good_frame_get & (fifo_state == WAIT);
+	 assign rx_bad_frame = bad_frame_get & (fifo_state == WAIT);
+    
 	 assign fifo_wr_en = receiving_d2;
 	 
 	 rxdatafifo rxdatain(.clk(rxclk),
@@ -425,26 +422,24 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	                  .dout(rx_data_valid_tmp),
 	                  .full(),
 	                  .empty());
-							
-	 reg fifo_rd_en_d1;
-	 always@(posedge rxclk) begin
-	      fifo_rd_en_d1 <=#TP fifo_rd_en;
-	 end	
-	 
 	 reg [63:0] rx_data;
 	 always@(posedge rxclk or posedge reset) begin
-	      if (reset)
-            rx_data <= 0;
-         else
-            rx_data <=#TP rx_data_tmp;			
+	      if (reset) begin
+            rx_data <=#TP 0;
+			end	
+         else begin
+            rx_data <=#TP rx_data_tmp;
+			end	
     end
 	 
 	 reg [7:0] rx_data_valid;
 	 always@(posedge rxclk or posedge reset) begin
-	      if (reset)
+	      if (reset) begin
 			  rx_data_valid <=#TP 0;
-			else
+			end  
+         else if(fifo_state[1])begin
            rx_data_valid <=#TP rx_data_valid_tmp;
+			end  
     end			
 												 
 endmodule
