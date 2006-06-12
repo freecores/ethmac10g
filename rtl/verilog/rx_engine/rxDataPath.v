@@ -43,6 +43,12 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2006/06/12 18:53:02  fisher5090
+// remove pad function added, using xilinx vp20 -6 as target FPGA, passes post place and route simulation
+// 
+// Revision 1.3  2006/06/12 04:11:19  fisher5090
+// both inband fcs and no inband fcs are OK, no remove PAD function
+// 
 // Revision 1.1  2005/12/25 16:43:10  Zheng Cao
 // 
 // 
