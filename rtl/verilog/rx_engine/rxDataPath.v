@@ -285,11 +285,76 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
        if (reset) 
 	       lt_data <=#TP 0;
    	 else if (start_lt) 
-	       lt_data <=#TP rxd64_d1[47:32];
+	       lt_data <=#TP {rxd64_d1[39:32], rxd64_d1[47:40]};
 		 else
 		    lt_data <=#TP lt_data;
     end
+	 
+	 reg[5:0] pad_integer;
+	 reg[5:0] pad_remain;
+	 always@(posedge rxclk or posedge reset) begin
+	    if (reset) begin
+		    pad_integer <=#TP 0;
+			 pad_remain <=#TP 0;
+		 end
+		 else begin
+		    pad_integer <=#TP (lt_data[5:0] - 2)>>3;
+	       pad_remain <=#TP lt_data[5:0] - 2;
+		 end
+	 end
+	 //Remove PAD counter
+	 reg[2:0] pad_cnt;
+	 always@(posedge rxclk or posedge reset) begin
+	    if (reset)
+		    pad_cnt <=#TP 0;
+		 else if(lt_data[5:0] == 1)
+		    pad_cnt <=#TP 1;
+		 else 
+		    pad_cnt <=#TP pad_integer[2:0] + 2;
+	 end
 
+    reg [7:0] pad_last_rxc;   
+    always@(posedge rxclk or posedge reset) begin
+       if (reset)
+          pad_last_rxc <=#TP 0;
+		 else if(lt_data[5:0] == 1)
+          pad_last_rxc <=#TP 8'h7f;
+		 else begin
+		    case (pad_remain[2:0])
+			     0: pad_last_rxc <=#TP 8'h00;
+		        1: pad_last_rxc <=#TP 8'h01;
+				  2: pad_last_rxc <=#TP 8'h03;
+				  3: pad_last_rxc <=#TP 8'h07;
+				  4: pad_last_rxc <=#TP 8'h0f;
+				  5: pad_last_rxc <=#TP 8'h1f;
+				  6: pad_last_rxc <=#TP 8'h3f;
+				  7: pad_last_rxc <=#TP 8'h7f;
+			 endcase
+       end
+     end		 
+//		    case (lt_data[5:0])
+//			    1,2: pad_cnt <=#TP 1;
+//				 3,4,5,6,7,8,9: pad_cnt <=#TP 2;
+//				 10,11,12,13,14,15,16,17: pad_cnt <=#TP 3;
+//             18,19,20,21,22,23,24,25: pad_cnt <=#TP 4;
+//             26,27,28,29,30,31,32,33: pad_cnt <=#TP 5;
+//             34,35,36,37,38,39,40,41: pad_cnt <=#TP 6;
+//             42,43,44,45: pad_cnt <=#TP 7;
+//             default: pad_cnt<= #TP 0;
+//          endcase
+    
+	 reg pad_frame;
+    always@(posedge rxclk or posedge reset) begin
+       if (reset)
+          pad_frame <=#TP 0;
+		 else if(~(lt_data[0]|lt_data[1]|lt_data[2]|lt_data[3]|lt_data[4]|lt_data[5]))
+		    pad_frame <=#TP 1'b0;
+       else if(lt_data<46)
+		    pad_frame <=#TP 1'b1;
+		 else
+		    pad_frame <=#TP 1'b0;
+	 end		 	 
+	 
     //tagged frame indicator
 	 always@(posedge rxclk or posedge reset) begin
 	    if (reset)
@@ -341,17 +406,7 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	 wire rxfifo_empty;
 	 wire fifo_wr_en;
     wire [63:0] rx_data_tmp;
-	 wire [7:0] rx_data_valid_tmp;
-	 
-	 reg one_frame_end;
-	 always@(posedge rxclk or posedge reset) begin
-	        if(reset)
-			    one_frame_end <= 1'b0;
-			  else if(rx_data_valid_tmp!=8'hff)
-			    one_frame_end <= 1'b1;
-			  else
-             one_frame_end <= 1'b0;				 
-	 end			  
+	 wire [7:0] rx_data_valid_tmp;		  
 	 
 	 reg fifo_rd_en;
 	 reg[1:0] fifo_state;
@@ -360,47 +415,83 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	 reg check_reset;
 	 always@(posedge rxclk or posedge reset) begin
 	       if(reset) begin
-			   fifo_rd_en <= 1'b0;
-			   fifo_state <= IDLE;
-				check_reset <= 1'b0;
+			   fifo_rd_en <=#TP 1'b0;
+			   fifo_state <=#TP IDLE;
+				check_reset <=#TP 1'b0;
 			 end
 			 else
             case (fifo_state) 
               IDLE: begin
-						check_reset <= 1'b0;
-                  fifo_state <= IDLE;
-						fifo_rd_en <= 1'b0;
-                  if(~rxfifo_empty) begin 
-                    fifo_rd_en <= 1'b1;
-                    fifo_state <= WAIT_TMP;
+						check_reset <=#TP 1'b0;
+                  fifo_state <=#TP IDLE;
+						fifo_rd_en <=#TP 1'b0;
+                  if(~rxfifo_empty) begin						  
+                    fifo_rd_en <=#TP 1'b1;
+                    fifo_state <=#TP WAIT_TMP;
 						end  
               end
               READ: begin
-				      check_reset <= 1'b0;
-                  fifo_rd_en <= 1'b1;
-						fifo_state <= READ;
+				      check_reset <=#TP 1'b0;
+                  fifo_rd_en <=#TP 1'b1;
+						fifo_state <=#TP READ;
                   if(rx_data_valid_tmp!=8'hff) begin						
-                    fifo_state <= WAIT;
-						  fifo_rd_en <= 1'b0;
+                    fifo_state <=#TP WAIT;
+						  fifo_rd_en <=#TP 1'b0;
 						end
 				  end		  
 				  WAIT_TMP: begin
                   if(rx_data_valid_tmp == 8'hff)
-                     fifo_state <=READ;
+                     fifo_state <=#TP READ;
 						else 
-						   fifo_state <=WAIT_TMP;
+						   fifo_state <=#TP WAIT_TMP;
               end						  
 				  WAIT: begin		
-                  fifo_state <= WAIT;
-                  check_reset <= 1'b0;	
-                  fifo_rd_en <= 1'b0;							
+                  fifo_state <=#TP WAIT;
+                  check_reset <=#TP 1'b0;	
+                  fifo_rd_en <=#TP 1'b0;							
                   if(bad_frame_get | good_frame_get)begin
-                    fifo_state <= IDLE;
-						  check_reset <= 1'b1;
+                    fifo_state <=#TP IDLE;
+						  check_reset <=#TP 1'b1;
 						end  
               end
             endcase
     end
+	 
+	 reg[2:0] pad_cnt_reg;
+	 always@(posedge rxclk or posedge reset) begin
+	       if(reset)
+			   pad_cnt_reg <=#TP 0;
+		    else if((fifo_state == WAIT_TMP)& pad_frame & ~rxfifo_empty)
+            pad_cnt_reg <=#TP pad_cnt;
+			 else if(pad_cnt_reg ==0)
+			   pad_cnt_reg <=#TP 0;
+		    else if(fifo_state[1])
+            pad_cnt_reg <=#TP pad_cnt_reg-1;
+          else
+  			   pad_cnt_reg <=#TP 0;
+	 end			
+	 
+	 reg[7:0] pad_rxc_reg;
+	 always@(posedge rxclk or posedge reset)begin
+	       if(reset)
+			   pad_rxc_reg <=#TP 0;
+			 else if((fifo_state == WAIT_TMP)& pad_frame & ~rxfifo_empty)
+			   pad_rxc_reg <=#TP pad_last_rxc;
+			 else
+			   pad_rxc_reg <=#TP pad_rxc_reg;
+	 end	
+	 
+	 reg pad_frame_d1;
+	 always@(posedge rxclk or posedge reset) begin
+	    if(reset)
+		    pad_frame_d1<=#TP 1'b0;
+		 else if((fifo_state == WAIT_TMP)& pad_frame & ~rxfifo_empty)
+		    pad_frame_d1<=#TP 1'b1;
+		 else if(fifo_state == WAIT)	 
+		    pad_frame_d1 <=#TP 1'b0;
+		 else
+          pad_frame_d1 <=#TP pad_frame_d1;		 
+	 end		 
     
 	 assign rx_good_frame = good_frame_get & (fifo_state == WAIT);
 	 assign rx_bad_frame = bad_frame_get & (fifo_state == WAIT);
@@ -438,8 +529,15 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	 always@(posedge rxclk or posedge reset) begin
 	      if (reset)
 			  rx_data_valid <=#TP 0;
-         else if(fifo_state[1])
-           rx_data_valid <=#TP rx_data_valid_tmp;  
+         else if(fifo_state[1] & pad_frame_d1)
+			  if(pad_cnt_reg==1)
+			    rx_data_valid <=#TP pad_rxc_reg;
+			  else if(pad_cnt_reg==0)
+             rx_data_valid <=#TP 0;
+			  else
+             rx_data_valid <=#TP rx_data_valid_tmp;			  
+         else if(fifo_state[1] & ~pad_frame_d1)			 
+             rx_data_valid <=#TP rx_data_valid_tmp;  
 			else
 			  rx_data_valid <=#TP 0;
     end			
