@@ -41,6 +41,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2006/06/11 12:15:11  fisher5090
+// no message
+//
 // Revision 1.1  2005/12/25 16:43:10  Zheng Cao
 // No flow control included
 // 
@@ -50,13 +53,13 @@
 `include "timescale.v"
 `include "xgiga_define.v"
 
-module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,
+module rxReceiveEngine(xgmii_rxclk, reset_in, xgmii_rxd, xgmii_rxc, rxStatRegPlus,
                        cfgRxRegData_in, rx_data, rx_data_valid, rx_good_frame, rxclk_out,
                        rx_bad_frame, rxCfgofRS, rxTxLinkFault);//, fcTxPauseData, fcTxPauseValid);
-    input rxclk_in; //Input clock of receive engine
+    input xgmii_rxclk; //Input clock of receive engine
     input reset_in; //Globle reset of receive engine
-    input [31:0] rxd_in; //XGMII RXD
-    input [3:0] rxc_in;  //XGMII RXC
+    input [31:0] xgmii_rxd; //XGMII RXD
+    input [3:0] xgmii_rxc;  //XGMII RXC
     output [17:0] rxStatRegPlus; //Signals for statistics	
     input [64:0] cfgRxRegData_in; //Signals for configuration
     output [63:0] rx_data; //Received data sent to upper layer
@@ -211,7 +214,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,
 	 // Receive Clock Generator
 	 //////////////////////////////////////// 
     assign rxclk_out = rxclk;
-	 rxClkgen rxclk_gen(.rxclk_in(rxclk_in),
+	 rxClkgen rxclk_gen(.rxclk_in(xgmii_rxclk),
 	                    .reset(reset_dcm),
 							  .rxclk(rxclk),    // system clock
 							  .rxclk_180(rxclk_180), //reversed clock
@@ -271,7 +274,7 @@ module rxReceiveEngine(rxclk_in, reset_in, rxd_in, rxc_in, rxStatRegPlus,
     /////////////////////////////////////
 	 // RS Layer
 	 /////////////////////////////////////
-    rxRSLayer rx_rs(.rxclk(rxclk), .rxclk_180(rxclk_180), .reset(reset), .link_fault(link_fault), .rxd64(rxd64), .rxc8(rxc8), .rxd_in(rxd_in), .rxc_in(rxc_in));
+    rxRSLayer rx_rs(.rxclk(rxclk), .rxclk_180(rxclk_180), .reset(reset), .link_fault(link_fault), .rxd64(rxd64), .rxc8(rxc8), .rxd_in(xgmii_rxd), .rxc_in(xgmii_rxc));
     
 	 /////////////////////////////////////
 	 // Statistic module

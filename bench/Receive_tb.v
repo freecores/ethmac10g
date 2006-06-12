@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------------
--- $Revision: 1.3 $ $Date: 2006-06-12 04:12:06 $
+-- $Revision: 1.4 $ $Date: 2006-06-12 10:02:32 $
 -- Title      : Demo testbench
 -- Project    : 10 Gigabit Ethernet MAC
 -------------------------------------------------------------------------------
@@ -410,11 +410,11 @@ module testbench;
   -- wire up Device Under Test
   ---------------------------------------------------------------------------*/
  	rxReceiveEngine uut (
-		.rxclk_in(xgmii_rx_clk), 
+		.xgmii_rxclk(xgmii_rx_clk), 
 		.reset_in(reset),
 		.rxclk_out(rx_clk),
-		.rxd_in(xgmii_rxd), 
-		.rxc_in(xgmii_rxc), 
+		.xgmii_rxd(xgmii_rxd), 
+		.xgmii_rxc(xgmii_rxc), 
 		.rxStatRegPlus(rxStatRegPlus), 
 		.cfgRxRegData_in(configuration_vector), 
 		.rx_data(rx_data), 
