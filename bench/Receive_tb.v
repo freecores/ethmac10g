@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------------
--- $Revision: 1.2 $ $Date: 2006-06-11 12:14:55 $
+-- $Revision: 1.3 $ $Date: 2006-06-12 04:12:06 $
 -- Title      : Demo testbench
 -- Project    : 10 Gigabit Ethernet MAC
 -------------------------------------------------------------------------------
@@ -298,7 +298,7 @@ module testbench;
         frame2.ctrl[17] = 4'b1111;
         frame2.ctrl[18] = 4'b1111;
         frame2.ctrl[19] = 4'b1111;
-        frame2.ctrl[20] = 4'b0000;
+        frame2.ctrl[20] = 4'b1111;
         frame2.ctrl[21] = 4'b0000;
         frame2.ctrl[22] = 4'b0000;
         frame2.ctrl[23] = 4'b0000;
@@ -427,7 +427,8 @@ module testbench;
 //		.fcTxPauseValid()
 	);
 
-   assign configuration_vector = {1'b0, 64'h058f010203040506};
+   assign configuration_vector = {1'b0, 64'h058b010203040506}; //fcs in-band invalid
+	//assign configuration_vector = {1'b0, 64'h058f010203040506}; // fcs in-band valid
  /*---------------------------------------------------------------------------
   -- Clock drivers
   ---------------------------------------------------------------------------*/
@@ -574,6 +575,7 @@ module testbench;
         rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_frame(frame2.tobits(0));
+        rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_frame(frame3.tobits(0));
