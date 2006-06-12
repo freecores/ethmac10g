@@ -323,10 +323,12 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
              rxc_final <=#TP rxc_end_data;
 			 else if (get_terminator_d1 & ~this_cycle)
 			    rxc_final <=#TP rxc_end_data;
+			 else if (get_error_code)
+             rxc_final <=#TP 0;			 
           else if (receiving)
-             rxc_final <=`ALLONES8;
+             rxc_final <=#TP `ALLONES8;
 			 else
-			    rxc_final <=0;			 
+			    rxc_final <=#TP 0;			 
     end				 
 
 	 assign rxc_fifo = inband_fcs? ~rxc8_d3:rxc_final;
@@ -434,12 +436,12 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
 	 
 	 reg [7:0] rx_data_valid;
 	 always@(posedge rxclk or posedge reset) begin
-	      if (reset) begin
+	      if (reset)
 			  rx_data_valid <=#TP 0;
-			end  
-         else if(fifo_state[1])begin
-           rx_data_valid <=#TP rx_data_valid_tmp;
-			end  
+         else if(fifo_state[1])
+           rx_data_valid <=#TP rx_data_valid_tmp;  
+			else
+			  rx_data_valid <=#TP 0;
     end			
 												 
 endmodule
