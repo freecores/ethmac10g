@@ -42,6 +42,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2006/06/15 08:25:42  fisher5090
+// comments added
+//
 // Revision 1.2  2006/06/15 05:09:24  fisher5090
 // bad coding style, but works, will be modified later
 //
@@ -513,9 +516,11 @@ always@(posedge mgmt_clk or posedge reset) begin
 				     data_sel <=#TP 1'b0;
 			        read_done <=#TP 0;
 			        mgmt_miim_rdy <=#TP 1;
+					  if(mgmt_req & mgmt_miim_sel)
+					    mgmt_miim_rdy <=#TP 0;
 				 end
              STAT_OPERATE: begin // read statistics registers
-			        mgmt_miim_rdy <=#TP 0;
+				     mgmt_miim_rdy <=#TP 1;
 			        read_done <=#TP 1'b0;
                  if (~data_sel) begin						
 			          mgmt_rd_data <=#TP stat_rd_data[31:0];
@@ -524,7 +529,6 @@ always@(posedge mgmt_clk or posedge reset) begin
 					  else if(data_sel)begin
 					    mgmt_rd_data <=#TP stat_rd_data[63:32];
 						 data_sel <=#TP 1'b0;
-			          mgmt_miim_rdy <=#TP 1;
 			          read_done <=#TP 1'b1;
 					  end 
 				 end
@@ -574,11 +578,11 @@ end
 always@(posedge mgmt_clk or posedge reset)begin
       if(reset)begin
 		  recv_config0 <=#TP 0;
-        recv_config1 <=#TP 32'h1000;
-        trans_config <=#TP 32'h1000;
-        flow_control_config <=#TP 32'h6000;
+        recv_config1 <=#TP 32'h10000000;
+        trans_config <=#TP 32'h10000000;
+        flow_control_config <=#TP 32'h60000000;
         rs_config <=#TP 0;
-        mgmt_config <=#TP 32'h0010;
+        mgmt_config <=#TP 32'h00100000;
 		end
       else if(~mgmt_miim_sel & mgmt_addr[9]& ~mgmt_opcode[1]) begin // write configuration registers
         case (mgmt_addr[8:0]) 
