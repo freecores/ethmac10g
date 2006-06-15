@@ -68,7 +68,7 @@ output[9:0] cfgTxRegData; //To Transmit Module, config transmit module
 output[1:0] mdio_opcode; //MDIO Opcode, equals mgmt_opcode
 output mdio_out_valid; //Indicate mdio_data_out is valid
 output[41:0] mdio_data_out; //Data to be writen to MDIO, {addr, data}
-input[31:0] mdio_data_in; //Data read from MDIO
+input[15:0] mdio_data_in; //Data read from MDIO
 input mdio_in_valid; //Indicate mdio_data_in read from MDIO is valid
 output[31:0] mgmt_config; //management configuration data, mainly used to set mdc frequency
 
@@ -503,7 +503,7 @@ always@(posedge mgmt_clk or posedge reset) begin
 		else begin
          case (state)
 			    IDLE: begin
-				     mgmt_rd_data <=#TP 0;
+				     mgmt_rd_data <=#TP mgmt_rd_data;
 				     data_sel <=#TP 1'b0;
 			        read_done <=#TP 0;
 			        mgmt_miim_rdy <=#TP 1;
@@ -535,11 +535,12 @@ always@(posedge mgmt_clk or posedge reset) begin
 				 end	  
              MDIO_OPERATE: begin
 				     if(~mdio_in_valid & mdio_in_valid_d1) begin
-                    mgmt_rd_data <=#TP mdio_data_in;
+                    mgmt_rd_data[15:0] <=#TP mdio_data_in;
+						  mgmt_rd_data[31:16] <=#TP 0;
 						  mgmt_miim_rdy <=#TP 1'b1;
 					  end
                  else begin
-                    mgmt_rd_data <=#TP 0;
+                    mgmt_rd_data <=#TP mgmt_rd_data;
 						  mgmt_miim_rdy <=#TP 1'b0;
                  end						  
              end	
@@ -621,15 +622,28 @@ always@(posedge mgmt_clk or posedge reset) begin
 		  mdio_opcode <=#TP mgmt_opcode;
 end
 
-reg mdio_out_valid;
+reg[4:0] tmp_cnt;
+always@(posedge mgmt_clk or posedge reset) begin
+      if(reset)
+		   tmp_cnt <=#TP 0;
+		else if(mgmt_req & mgmt_miim_sel)
+		   tmp_cnt <=#TP 0;
+		else if(tmp_cnt == 30)
+		   tmp_cnt <=#TP tmp_cnt;
+		else	
+		   tmp_cnt <=#TP tmp_cnt + 1;
+end			
 
+reg mdio_out_valid;
 always@(posedge mgmt_clk or posedge reset) begin
       if(reset)
 			mdio_out_valid <=#TP 0;
 		else if(mgmt_req & mgmt_miim_sel) 
 		   mdio_out_valid <=#TP 1'b1;
-		else
+		else if(tmp_cnt ==30)
 		   mdio_out_valid <=#TP 1'b0;
+		else
+         mdio_out_valid <= #TP mdio_out_valid;		
 end		
 
 endmodule

@@ -48,7 +48,7 @@
 //////////////////////////////////////////////////////////////////////
 
 `define PRE 31'h7fffffff
-`define ST 2'b00
+`define ST 2'b01
 `define TA 2'b10
 
 module mdio(mgmt_clk, reset, mdc, mdio_t, mdio_i, mdio_o, mdio_opcode, mdio_in_valid, mdio_data_in, mdio_out_valid, mdio_data_out, mgmt_config);
@@ -188,15 +188,15 @@ reg mdio_t;
 always@(posedge mdc or posedge reset)begin
       if(reset) begin
         mdio_o <=#TP 0;
-        mdio_t <=#TP 1;
+        mdio_t <=#TP 0;
 		  transmitting <=#TP 0;
 		  receiving <=#TP 0;
       end
       else begin
         case (state)
             IDLE:begin
-               mdio_o <=#TP 0;
-               mdio_t <=#TP 1;	
+               mdio_o <=#TP 1'b1;
+               mdio_t <=#TP 0;	
 		         receiving <=#TP 0;
                transmitting <=#TP 0;					
             end
@@ -211,7 +211,9 @@ always@(posedge mdc or posedge reset)begin
 			   end	
             MDIO_READ:begin
 					mdio_o <=#TP mdio_data_reg[62];
+					mdio_t <=#TP 1'b0;
   				   transmitting <=#TP 1'b1;
+		         receiving <=#TP 0;
 					if (trans_cnt <45) begin //transmitting PRE, ST, OP, ADDR
 					  mdio_t <=#TP 1'b0;
 					  receiving <=#TP 1'b0;
@@ -220,11 +222,18 @@ always@(posedge mdc or posedge reset)begin
 					  mdio_t <=#TP 1'b1;
 					  receiving <=#TP 1'b0;
 					end		
+//					else if (trans_cnt == 46)begin //transmitting TA
+//					  mdio_t <=#TP 1'b0;
+//					  receiving <=#TP 1'b0;
+//					end		
 					else if (trans_cnt == 63)begin //all data received
                  receiving <=#TP 0;
+  				     transmitting <=#TP 1'b0;
+					  mdio_t <=#TP 1'b0;
+					  mdio_o <=#TP 1'b1;
 					end
                else if(trans_cnt >= 46)begin //receiving Data
-                 mdio_t <=#TP 1'b0;	
+					  mdio_t <=#TP 1'b1;
                  receiving <=#TP 1'b1;			
 					end
 			   end	
