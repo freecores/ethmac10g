@@ -42,6 +42,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2006/06/15 05:09:24  fisher5090
+// bad coding style, but works, will be modified later
+//
 // Revision 1.1  2005/12/25 16:43:10  Zheng Cao
 // 
 // 
@@ -67,7 +70,7 @@ output[52:0] cfgRxRegData; //To Receive Module, config receive module
 output[9:0] cfgTxRegData; //To Transmit Module, config transmit module
 output[1:0] mdio_opcode; //MDIO Opcode, equals mgmt_opcode
 output mdio_out_valid; //Indicate mdio_data_out is valid
-output[41:0] mdio_data_out; //Data to be writen to MDIO, {addr, data}
+output[25:0] mdio_data_out; //Data to be writen to MDIO, {addr, data}
 input[15:0] mdio_data_in; //Data read from MDIO
 input mdio_in_valid; //Indicate mdio_data_in read from MDIO is valid
 output[31:0] mgmt_config; //management configuration data, mainly used to set mdc frequency
@@ -152,7 +155,6 @@ end
 // State Machine
 /////////////////////////////////////////////
 reg[1:0] state;
-
 reg read_done;
 always@(posedge mgmt_clk or posedge reset)begin
     if (reset)
@@ -160,29 +162,31 @@ always@(posedge mgmt_clk or posedge reset)begin
 	 else begin
 	    case (state)
 		    IDLE: begin
-			     if(mgmt_req & mgmt_miim_sel) 
+			     if(mgmt_req & mgmt_miim_sel) // MDIO Operations
 				    state <=#TP MDIO_OPERATE;
-				  else if(~mgmt_miim_sel & mgmt_req & ~mgmt_addr[9]) 
+				  else if(~mgmt_miim_sel & mgmt_req & ~mgmt_addr[9]) // Operations on Statistics registers 
 				    state <=#TP STAT_OPERATE;
-				  else if(~mgmt_miim_sel & mgmt_addr[9])
+				  else if(~mgmt_miim_sel & mgmt_addr[9]) // Operations on Configuration registers
 				    state <=#TP CONFIG_OPERATE;
 				  else
 				    state <=#TP IDLE;
 			 end
           MDIO_OPERATE: begin
-              if(~mdio_in_valid & mdio_in_valid_d1)
+              if(~mdio_in_valid & mdio_in_valid_d1) // MDIO read/write done
                 state <=#TP IDLE;
               else
                 state <=#TP MDIO_OPERATE;
           end					
-          STAT_OPERATE: begin
-              if(read_done)
+          STAT_OPERATE: begin 
+              if(read_done) // for statistics registers, only read operation happens 
                 state <=#TP IDLE;
               else
                 state <=#TP STAT_OPERATE;
           end
           CONFIG_OPERATE: begin
-              if(mgmt_req & mgmt_miim_sel) 
+              if(mgmt_req & mgmt_miim_sel) //during operation on configuration registers, 
+				                               //other request can be responsed. because such 
+														 //operations only take one cycle time.  
 				    state <=#TP MDIO_OPERATE;
 				  else if(~mgmt_miim_sel & mgmt_req & ~mgmt_addr[9]) 
 				    state <=#TP STAT_OPERATE;
@@ -205,133 +209,133 @@ always@(posedge rxclk or posedge reset) begin
 	      frame_received_good <=#TP 1;
 	   else if(rxStatRegPlus[0])
          frame_received_good <=#TP frame_received_good + 1;
-end
+end // num of good frames have been received
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      fcs_error <=#TP 2;
 	   else if(rxStatRegPlus[1])
          fcs_error <=#TP fcs_error + 1;
-end
+end // num of frames that have failed in FCS checking
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      broadcast_received_good <=#TP 0;
 	   else if(rxStatRegPlus[2])
          broadcast_received_good <=#TP broadcast_received_good + 1;
-end
+end // num of broadcast frames that have been successfully received
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      multicast_received_good <=#TP 0;
 	   else if(rxStatRegPlus[3])
          multicast_received_good <=#TP multicast_received_good + 1;
-end
+end // num of multicast frames that have been successfully received
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      frame_64_good <=#TP 0;
 	   else if(rxStatRegPlus[4])
          frame_64_good <=#TP frame_64_good + 1;
-end
+end //num of frames that have been successfully received, with length equal to 64
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      frame_65_127_good <=#TP 0;
 	   else if(rxStatRegPlus[5])
          frame_65_127_good <=#TP frame_65_127_good + 1;
-end
+end //num of frames that have been successfully received, with length between 65 and 127
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      frame_128_255_good <=#TP 0;
 	   else if(rxStatRegPlus[6])
          frame_128_255_good <=#TP frame_128_255_good + 1;
-end
+end //num of frames that have been successfully received, with length between 128 and 255
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      frame_256_511_good <=#TP 0;
 	   else if(rxStatRegPlus[7])
          frame_256_511_good <=#TP frame_256_511_good + 1;
-end
+end //num of frames that have been successfully received, with length between 256 and 511
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      frame_512_1023_good <=#TP 0;
 	   else if(rxStatRegPlus[8])
          frame_512_1023_good <=#TP frame_512_1023_good + 1;
-end
+end //num of frames that have been successfully received, with length between 512 and 1023
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      frame_1024_max_good <=#TP 0;
 	   else if(rxStatRegPlus[9])
          frame_1024_max_good <=#TP frame_1024_max_good + 1;
-end
+end //num of frames that have been successfully received, with length between 1024 and max length
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      control_frame_good <=#TP 0;
 	   else if(rxStatRegPlus[10])
          control_frame_good <=#TP control_frame_good + 1;
-end
+end //num of control frames that have been successfully received
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      lt_out_range <=#TP 0;
 	   else if(rxStatRegPlus[11])
          lt_out_range <=#TP lt_out_range + 1;
-end
+end //num of frames whose length are too large
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      tagged_frame_good <=#TP 0;
 	   else if(rxStatRegPlus[12])
          tagged_frame_good <=#TP tagged_frame_good + 1;
-end
+end //num of tagged frames that have been successfully received
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      pause_frame_good <=#TP 0;
 	   else if(rxStatRegPlus[13])
          pause_frame_good <=#TP pause_frame_good + 1;
-end
+end //num of pause frames that have been successfully received
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      unsupported_control_frame <=#TP 0;
 	   else if(rxStatRegPlus[14])
          unsupported_control_frame <=#TP unsupported_control_frame + 1;
-end
+end //num of frames whose type filed haven't been defined in IEEE 802.3*
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      oversize_frame_good <=#TP 0;
 	   else if(rxStatRegPlus[15])
          oversize_frame_good <=#TP oversize_frame_good + 1;
-end
+end //num of frames which are good, only with large size
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      undersize_frame <=#TP 0;
 	   else if(rxStatRegPlus[16])
          undersize_frame <=#TP undersize_frame + 1;
-end
+end //num of frames whose length are too short
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      fragment_frame <=#TP 0;
 	   else if(rxStatRegPlus[17])
          fragment_frame <=#TP fragment_frame + 1;
-end
+end //num of fragment frames 
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
 	      total_bytes_recved <=#TP 0;
 	   else if(rxStatRegPlus[18])
          total_bytes_recved <=#TP total_bytes_recved + 1;
-end
+end //bytes have been received
 
 //--Transmit Related
 always@(posedge txclk or posedge reset) begin
@@ -339,105 +343,105 @@ always@(posedge txclk or posedge reset) begin
 	      total_bytes_transed <=#TP 0;
 	   else if(txStatRegPlus[0])
          total_bytes_transed <=#TP total_bytes_transed + 1;
-end
+end //bytes have been transmitted
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      good_frame_transed <=#TP 0;
 	   else if(txStatRegPlus[1])
          good_frame_transed <=#TP good_frame_transed + 1;
-end
+end //num of error free frames have been transmitted
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      broadcast_frame_transed <=#TP 0;
 	   else if(txStatRegPlus[2])
          broadcast_frame_transed <=#TP broadcast_frame_transed + 1;
-end
+end //num of broadcast frames have been transmitted
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      multicast_frame_transed <=#TP 0;
 	   else if(txStatRegPlus[3])
          multicast_frame_transed <=#TP multicast_frame_transed + 1;
-end
+end //num of multicast frames have been transmitted
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      underrun_error <=#TP 0;
 	   else if(txStatRegPlus[4])
          underrun_error <=#TP underrun_error + 1;
-end
+end //num of underrun error frames have been transmitted
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      control_frame_transed <=#TP 0;
 	   else if(txStatRegPlus[5])
          control_frame_transed <=#TP control_frame_transed + 1;
-end
+end //num of control frames have been transmitted
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      frame_64_transed <=#TP 0;
 	   else if(txStatRegPlus[6])
          frame_64_transed <=#TP frame_64_transed + 1;
-end
+end //num of frames have been transmitted, with length equal 64
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      frame_65_127_transed <=#TP 0;
 	   else if(txStatRegPlus[7])
          frame_65_127_transed <=#TP frame_65_127_transed + 1;
-end
+end //num of frames have been transmitted, with length are between 65 and 127
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      frame_128_255_transed <=#TP 0;
 	   else if(txStatRegPlus[8])
          frame_128_255_transed <=#TP frame_128_255_transed + 1;
-end
+end //num of frames have been transmitted, with length are between 128 and 255
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      frame_256_511_transed <=#TP 0;
 	   else if(txStatRegPlus[9])
          frame_256_511_transed <=#TP frame_256_511_transed + 1;
-end
+end //num of frames have been transmitted, with length are between 256 and 511
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      frame_512_1023_transed <=#TP 0;
 	   else if(txStatRegPlus[10])
          frame_512_1023_transed <=#TP frame_512_1023_transed + 1;
-end
+end //num of frames have been transmitted, with length are between 512 and 1023
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      frame_1024_max_transed <=#TP 0;
 	   else if(txStatRegPlus[11])
          frame_1024_max_transed <=#TP frame_1024_max_transed + 1;
-end
+end //num of frames have been transmitted, with length are between 1024 and max length
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      tagged_frame_transed <=#TP 0;
 	   else if(txStatRegPlus[12])
          tagged_frame_transed <=#TP tagged_frame_transed + 1;
-end
+end //num of tagged frames have been transmitted
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      pause_frame_transed <=#TP 0;
 	   else if(txStatRegPlus[13])
          pause_frame_transed <=#TP pause_frame_transed + 1;
-end
+end //num of pause frames have been transmitted
 
 always@(posedge txclk or posedge reset) begin
       if (reset)
 	      oversize_frame_transed <=#TP 0;
 	   else if(txStatRegPlus[14])
          oversize_frame_transed <=#TP oversize_frame_transed + 1;
-end
+end //num of frames whose length are larger than max length
 
 /////////////////////////////////////////////
 // Read Statistics Registers
@@ -488,6 +492,8 @@ always@(posedge mgmt_clk or posedge reset) begin
 end	 
  
 ////////////////////////////////////////////////////////
+// READ Statmachine
+//
 // Select which data to be writen to mgmt_rd_data
 ////////////////////////////////////////////////////////
 reg[31:0] mgmt_rd_data;
@@ -496,8 +502,8 @@ reg data_sel;
 always@(posedge mgmt_clk or posedge reset) begin
       if(reset) begin
          mgmt_rd_data <=#TP 0;
-			data_sel <=#TP 0;
-			read_done <=#TP 0;
+			data_sel <=#TP 0; //0 select the lower 32bits of stat regs to mgmt_rd_data, while 1 select the higher 32bits
+			read_done <=#TP 0; // when asserted, it indicates read operation has been finished
 			mgmt_miim_rdy <=#TP 0;
 		end	
 		else begin
@@ -508,7 +514,7 @@ always@(posedge mgmt_clk or posedge reset) begin
 			        read_done <=#TP 0;
 			        mgmt_miim_rdy <=#TP 1;
 				 end
-             STAT_OPERATE: begin
+             STAT_OPERATE: begin // read statistics registers
 			        mgmt_miim_rdy <=#TP 0;
 			        read_done <=#TP 1'b0;
                  if (~data_sel) begin						
@@ -522,7 +528,7 @@ always@(posedge mgmt_clk or posedge reset) begin
 			          read_done <=#TP 1'b1;
 					  end 
 				 end
-				 CONFIG_OPERATE: begin
+				 CONFIG_OPERATE: begin // read configuration registers
 				     case (mgmt_addr_d1[8:4])
 					        5'h00: mgmt_rd_data <=#TP recv_config0;
                        5'h04: mgmt_rd_data <=#TP recv_config1;
@@ -533,7 +539,7 @@ always@(posedge mgmt_clk or posedge reset) begin
 							  default: mgmt_rd_data <=#TP mgmt_rd_data;
 					  endcase
 				 end	  
-             MDIO_OPERATE: begin
+             MDIO_OPERATE: begin // read/write MDIO registers
 				     if(~mdio_in_valid & mdio_in_valid_d1) begin
                     mgmt_rd_data[15:0] <=#TP mdio_data_in;
 						  mgmt_rd_data[31:16] <=#TP 0;
@@ -574,7 +580,7 @@ always@(posedge mgmt_clk or posedge reset)begin
         rs_config <=#TP 0;
         mgmt_config <=#TP 32'h0010;
 		end
-      else if(~mgmt_miim_sel & mgmt_addr[9]& ~mgmt_opcode[1]) begin
+      else if(~mgmt_miim_sel & mgmt_addr[9]& ~mgmt_opcode[1]) begin // write configuration registers
         case (mgmt_addr[8:0]) 
           9'h000: recv_config0 <=#TP mgmt_wr_data;
           9'h040: recv_config1 <=#TP mgmt_wr_data;
@@ -594,27 +600,29 @@ always@(posedge mgmt_clk or posedge reset)begin
       end
 end
 		
-/////////////////////////////////////////////
-// Read Configuration Registers
-/////////////////////////////////////////////
+///////////////////////////////////////////////////////
+// Read Configuration Registers, 
+// generates receive and transmit configuration vector
+///////////////////////////////////////////////////////
 
 assign cfgRxRegData = {recv_config1[31:27], recv_config1[15:0], recv_config0};
 assign cfgTxRegData = {rs_config[27], trans_config[31:24],flow_control_config[30]}; 
 
-/////////////////////////////////////////////
-// Generate MDIO Operations
-/////////////////////////////////////////////
-reg[41:0] mdio_data_out;
+///////////////////////////////////////////////
+// Interface with MDIO module
+// Generate control and data signals for MDIO
+///////////////////////////////////////////////
+reg[25:0] mdio_data_out; //output data, includes PHY address and data to be writen
 always@(posedge mgmt_clk or posedge reset) begin
       if(reset)
 		   mdio_data_out <=#TP 0;
 		else if(mgmt_req & mgmt_miim_sel)
-		   mdio_data_out <=#TP {mgmt_addr[9:0], mgmt_wr_data[31:0]};
+		   mdio_data_out <=#TP {mgmt_addr[9:0], mgmt_wr_data[15:0]};
 		else
 		   mdio_data_out <=#TP mdio_data_out;
 end
 
-reg[1:0] mdio_opcode;
+reg[1:0] mdio_opcode; //MDIO operation code, 2'b10 is read, while 2'b01 is write
 always@(posedge mgmt_clk or posedge reset) begin
       if(reset)
 		  mdio_opcode <=#TP 0;
@@ -622,7 +630,7 @@ always@(posedge mgmt_clk or posedge reset) begin
 		  mdio_opcode <=#TP mgmt_opcode;
 end
 
-reg[4:0] tmp_cnt;
+reg[4:0] tmp_cnt; //used to longer the mdio_out_valid signal
 always@(posedge mgmt_clk or posedge reset) begin
       if(reset)
 		   tmp_cnt <=#TP 0;
@@ -634,7 +642,7 @@ always@(posedge mgmt_clk or posedge reset) begin
 		   tmp_cnt <=#TP tmp_cnt + 1;
 end			
 
-reg mdio_out_valid;
+reg mdio_out_valid; //indicates a MDIO request is valid, lasts for 31 cycles(mgmt_clk)
 always@(posedge mgmt_clk or posedge reset) begin
       if(reset)
 			mdio_out_valid <=#TP 0;

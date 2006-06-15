@@ -42,6 +42,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2006/06/15 05:09:24  fisher5090
+// bad coding style, but works, will be modified later
+//
 // Revision 1.1  2005/12/25 16:43:10  Zheng Cao
 // 
 // 
@@ -71,7 +74,7 @@ input reset;
 wire[1:0] mdio_opcode;
 wire mdio_out_valid;
 wire mdio_in_valid;
-wire[41:0] mdio_data_out;
+wire[25:0] mdio_data_out;
 wire[15:0] mdio_data_in;
 wire[31:0] mgmt_config;
 

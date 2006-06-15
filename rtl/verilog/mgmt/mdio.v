@@ -41,6 +41,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2006/06/15 05:09:24  fisher5090
+// bad coding style, but works, will be modified later
+//
 // Revision 1.1  2005/12/25 16:43:10  Zheng Cao
 // 
 // 
@@ -63,7 +66,7 @@ input[1:0] mdio_opcode; //MDIO Opcode, equals mgmt_opcode
 output mdio_in_valid; //Indicate mdio_data_in read from MDIO is valid
 output[15:0] mdio_data_in; //Data read from MDIO
 input mdio_out_valid; //Indicate mdio_data_out is valid
-input[41:0] mdio_data_out; //Data to be writen to MDIO, {addr, data}
+input[25:0] mdio_data_out; //Data to be writen to MDIO, {addr, data}
 input[31:0] mgmt_config; //management configuration data, mainly used to set mdc frequency
 
 parameter IDLE =0, MDIO_WRITE =1, MDIO_READ =2;
@@ -103,7 +106,7 @@ always@(posedge mgmt_clk or posedge reset)begin
 		  mdio_data <=#TP 0;
 		end
 		else if(mdio_out_valid)begin
-		  mdio_data <=#TP {`PRE, `ST, mdio_opcode, mdio_data_out[41:32], `TA, mdio_data_out[15:0]};
+		  mdio_data <=#TP {`PRE, `ST, mdio_opcode, mdio_data_out[25:16], `TA, mdio_data_out[15:0]};
 		end
 end
 
@@ -206,7 +209,7 @@ always@(posedge mdc or posedge reset)begin
 					mdio_t <=#TP 1'b0;
 		         receiving <=#TP 0;
 					if (trans_cnt == 63)begin
-                 transmitting <=#TP 0;
+                  transmitting <=#TP 0;
                end					  
 			   end	
             MDIO_READ:begin
@@ -214,22 +217,11 @@ always@(posedge mdc or posedge reset)begin
 					mdio_t <=#TP 1'b0;
   				   transmitting <=#TP 1'b1;
 		         receiving <=#TP 0;
-					if (trans_cnt <45) begin //transmitting PRE, ST, OP, ADDR
-					  mdio_t <=#TP 1'b0;
-					  receiving <=#TP 1'b0;
-					end  
-					else if (trans_cnt == 45)begin //transmitting TA
+               if (trans_cnt == 45)begin //transmitting TA
 					  mdio_t <=#TP 1'b1;
-					  receiving <=#TP 1'b0;
-					end		
-//					else if (trans_cnt == 46)begin //transmitting TA
-//					  mdio_t <=#TP 1'b0;
-//					  receiving <=#TP 1'b0;
-//					end		
+					end			
 					else if (trans_cnt == 63)begin //all data received
-                 receiving <=#TP 0;
   				     transmitting <=#TP 1'b0;
-					  mdio_t <=#TP 1'b0;
 					  mdio_o <=#TP 1'b1;
 					end
                else if(trans_cnt >= 46)begin //receiving Data
