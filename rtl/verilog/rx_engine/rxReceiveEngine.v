@@ -1,20 +1,20 @@
 //////////////////////////////////////////////////////////////////////
-////////
-//// MODULE NAME: receive engine ////
-//// ////
+////                                                              ////
+//// MODULE NAME: receive engine                                  ////
+////                                                              ////
 //// DESCRIPTION: Receive Engine Top Level for the 10 Gigabit     ////
-////     Ethernet MAC. ////
-//// ////
+////     Ethernet MAC.                                            ////
+////                                                              ////
 //// This file is part of the 10 Gigabit Ethernet IP core project ////
-////  http://www.opencores.org/projects/ethmac10g/ ////
-//// ////
-//// AUTHOR(S): ////
-//// Zheng Cao ////
-//// ////
+////  http://www.opencores.org/projects/ethmac10g/                ////
+////                                                              ////
+//// AUTHOR(S):                                                   ////
+//// Zheng Cao                                                    ////
+////                                                              ////
 //////////////////////////////////////////////////////////////////////
-//// ////
-//// Copyright (c) 2005 AUTHORS.  All rights reserved. ////
-//// ////
+////                                                              ////
+//// Copyright (c) 2005 AUTHORS.  All rights reserved.            ////
+////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
 //// removed from the file and that any derivative work contains  ////
@@ -34,17 +34,20 @@
 ////                                                              ////
 //// You should have received a copy of the GNU Lesser General    ////
 //// Public License along with this source; if not, download it   ////
-//// from http://www.opencores.org/lgpl.shtml ////
-//// ////
+//// from http://www.opencores.org/lgpl.shtml                     ////
+////                                                              ////
 //////////////////////////////////////////////////////////////////////
 //
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
-// Revision 1.4  2006/06/12 10:02:19  fisher5090
+// Revision 1.5  2006/06/16 06:36:28  Zheng Cao
+// no message
+//
+// Revision 1.4  2006/06/12 10:02:19  Zheng Cao
 // change rxd_in, rxc_in and rxclk_in signals'name to xgmii_rxd, xgmii_rxc and xgmii_rxclk
 //
-// Revision 1.3  2006/06/11 12:15:11  fisher5090
+// Revision 1.3  2006/06/11 12:15:11  Zheng Cao
 // no message
 //
 // Revision 1.1  2005/12/25 16:43:10  Zheng Cao

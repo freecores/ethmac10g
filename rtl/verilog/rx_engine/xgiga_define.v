@@ -1,20 +1,20 @@
 //////////////////////////////////////////////////////////////////////
-//// 																					////
-//// MODULE NAME: definition of parameters    							////
-//// 																					////
+////                                                              ////
+//// MODULE NAME: definition of parameters                        ////
+////                                                              ////
 //// DESCRIPTION:                                                 ////
 ////                                                              ////
-////																					////
+////                                                              ////
 //// This file is part of the 10 Gigabit Ethernet IP core project ////
-////  http://www.opencores.org/projects/ethmac10g/						////
-////																					////
-//// AUTHOR(S):																	////
-//// Zheng Cao			                                             ////
-////							                                    		////
+////  http://www.opencores.org/projects/ethmac10g/                ////
+////                                                              ////
+//// AUTHOR(S):                                                   ////
+//// Zheng Cao                                                    ////
+////                                                              ////
 //////////////////////////////////////////////////////////////////////
-////																					////
-//// Copyright (c) 2005 AUTHORS.  All rights reserved.			   ////
-////																					////
+////                                                              ////
+//// Copyright (c) 2005 AUTHORS.  All rights reserved.            ////
+////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
 //// removed from the file and that any derivative work contains  ////
@@ -34,13 +34,16 @@
 ////                                                              ////
 //// You should have received a copy of the GNU Lesser General    ////
 //// Public License along with this source; if not, download it   ////
-//// from http://www.opencores.org/lgpl.shtml   						////
-////																					////
+//// from http://www.opencores.org/lgpl.shtml                     ////
+////                                                              ////
 //////////////////////////////////////////////////////////////////////
 //
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.1.1  2006/05/31 05:59:44  Zheng Cao
+// first version
+//
 // Revision 1.1  2005/12/25 16:43:10  Zheng Cao
 // 
 // 

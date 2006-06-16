@@ -1,21 +1,21 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////
-//// 																					////
-//// MODULE NAME: manage_registers 											////
-//// 																					////
+////                                                              ////
+//// MODULE NAME: manage_registers                                ////
+////                                                              ////
 //// DESCRIPTION: implement read & write logic for configuration  ////
 ////              and statistics registers                        ////
-////																					////
+////                                                              ////
 //// This file is part of the 10 Gigabit Ethernet IP core project ////
-////  http://www.opencores.org/projects/ethmac10g/						////
-////																					////
-//// AUTHOR(S):																	////
-//// Zheng Cao			                                             ////
-////							                                    		////
+////  http://www.opencores.org/projects/ethmac10g/                ////
+////                                                              ////
+//// AUTHOR(S):                                                   ////
+//// Zheng Cao                                                    ////
+////                                                              ////
 //////////////////////////////////////////////////////////////////////
-////																					////
-//// Copyright (c) 2005 AUTHORS.  All rights reserved.			   ////
-////																					////
+////                                                              ////
+//// Copyright (c) 2005 AUTHORS.  All rights reserved.            ////
+////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
 //// removed from the file and that any derivative work contains  ////
@@ -35,13 +35,16 @@
 ////                                                              ////
 //// You should have received a copy of the GNU Lesser General    ////
 //// Public License along with this source; if not, download it   ////
-//// from http://www.opencores.org/lgpl.shtml   						////
-////																					////
+//// from http://www.opencores.org/lgpl.shtml                     ////
+////                                                              ////
 //////////////////////////////////////////////////////////////////////
 //
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2006/06/15 12:12:27  fisher5090
+// modify mgmt_miim_rdy timing sequence
+//
 // Revision 1.3  2006/06/15 08:25:42  fisher5090
 // comments added
 //
@@ -188,15 +191,15 @@ always@(posedge mgmt_clk or posedge reset)begin
           end
           CONFIG_OPERATE: begin
               if(mgmt_req & mgmt_miim_sel) //during operation on configuration registers, 
-				                               //other request can be responsed. because such 
-														 //operations only take one cycle time.  
-				    state <=#TP MDIO_OPERATE;
-				  else if(~mgmt_miim_sel & mgmt_req & ~mgmt_addr[9]) 
-				    state <=#TP STAT_OPERATE;
-				  else if(~mgmt_miim_sel & mgmt_addr[9])
-				    state <=#TP CONFIG_OPERATE;
-				  else
-				    state <=#TP IDLE;
+                                           //other request can be responsed. because such 
+	                                   //operations only take one cycle time.  
+		state <=#TP MDIO_OPERATE
+   	      else if(~mgmt_miim_sel & mgmt_req & ~mgmt_addr[9]) 
+	        state <=#TP STAT_OPERATE;
+	      else if(~mgmt_miim_sel & mgmt_addr[9])
+	        state <=#TP CONFIG_OPERATE;
+	     else
+     	        state <=#TP IDLE;
           end
       endcase
    end
@@ -209,71 +212,71 @@ end
 //--Receive Related
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      frame_received_good <=#TP 1;
-	   else if(rxStatRegPlus[0])
+         frame_received_good <=#TP 1;
+      else if(rxStatRegPlus[0])
          frame_received_good <=#TP frame_received_good + 1;
 end // num of good frames have been received
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      fcs_error <=#TP 2;
-	   else if(rxStatRegPlus[1])
+         fcs_error <=#TP 2;
+      else if(rxStatRegPlus[1])
          fcs_error <=#TP fcs_error + 1;
 end // num of frames that have failed in FCS checking
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      broadcast_received_good <=#TP 0;
-	   else if(rxStatRegPlus[2])
+         broadcast_received_good <=#TP 0;
+      else if(rxStatRegPlus[2])
          broadcast_received_good <=#TP broadcast_received_good + 1;
 end // num of broadcast frames that have been successfully received
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      multicast_received_good <=#TP 0;
-	   else if(rxStatRegPlus[3])
+         multicast_received_good <=#TP 0;
+      else if(rxStatRegPlus[3])
          multicast_received_good <=#TP multicast_received_good + 1;
 end // num of multicast frames that have been successfully received
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      frame_64_good <=#TP 0;
-	   else if(rxStatRegPlus[4])
+         frame_64_good <=#TP 0;
+      else if(rxStatRegPlus[4])
          frame_64_good <=#TP frame_64_good + 1;
 end //num of frames that have been successfully received, with length equal to 64
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      frame_65_127_good <=#TP 0;
-	   else if(rxStatRegPlus[5])
+         frame_65_127_good <=#TP 0;
+      else if(rxStatRegPlus[5])
          frame_65_127_good <=#TP frame_65_127_good + 1;
 end //num of frames that have been successfully received, with length between 65 and 127
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      frame_128_255_good <=#TP 0;
-	   else if(rxStatRegPlus[6])
+         frame_128_255_good <=#TP 0;
+      else if(rxStatRegPlus[6])
          frame_128_255_good <=#TP frame_128_255_good + 1;
 end //num of frames that have been successfully received, with length between 128 and 255
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      frame_256_511_good <=#TP 0;
-	   else if(rxStatRegPlus[7])
+         frame_256_511_good <=#TP 0;
+      else if(rxStatRegPlus[7])
          frame_256_511_good <=#TP frame_256_511_good + 1;
 end //num of frames that have been successfully received, with length between 256 and 511
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      frame_512_1023_good <=#TP 0;
-	   else if(rxStatRegPlus[8])
+         frame_512_1023_good <=#TP 0;
+      else if(rxStatRegPlus[8])
          frame_512_1023_good <=#TP frame_512_1023_good + 1;
 end //num of frames that have been successfully received, with length between 512 and 1023
 
 always@(posedge rxclk or posedge reset) begin
       if (reset)
-	      frame_1024_max_good <=#TP 0;
-	   else if(rxStatRegPlus[9])
+         frame_1024_max_good <=#TP 0;
+      else if(rxStatRegPlus[9])
          frame_1024_max_good <=#TP frame_1024_max_good + 1;
 end //num of frames that have been successfully received, with length between 1024 and max length
 
