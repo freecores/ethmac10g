@@ -1,20 +1,20 @@
 //////////////////////////////////////////////////////////////////////
-//// 																					////
-//// MODULE NAME: rx clk generator 											////
-//// 																					////
+////                                                              ////
+//// MODULE NAME: rx clk generator                                ////
+////                                                              ////
 //// DESCRIPTION: Clk generator for Receive engine of 10 Gigabit  ////
-////     Ethernet MAC.															////
-////																					////
+////     Ethernet MAC.                                            ////
+////                                                              ////
 //// This file is part of the 10 Gigabit Ethernet IP core project ////
-////  http://www.opencores.org/projects/ethmac10g/						////
-////																					////
-//// AUTHOR(S):																	////
-//// Zheng Cao			                                             ////
-////							                                    		////
+////  http://www.opencores.org/projects/ethmac10g/                ////
+////                                                              ////
+//// AUTHOR(S):                                                   ////
+//// Zheng Cao                                                    ////
+////                                                              ////
 //////////////////////////////////////////////////////////////////////
-////																					////
-//// Copyright (c) 2005 AUTHORS.  All rights reserved.			   ////
-////																					////
+////                                                              ////
+//// Copyright (c) 2005 AUTHORS.  All rights reserved.            ////
+////                                                              ////
 //// This source file may be used and distributed without         ////
 //// restriction provided that this copyright statement is not    ////
 //// removed from the file and that any derivative work contains  ////
@@ -34,13 +34,16 @@
 ////                                                              ////
 //// You should have received a copy of the GNU Lesser General    ////
 //// Public License along with this source; if not, download it   ////
-//// from http://www.opencores.org/lgpl.shtml   						////
-////																					////
+//// from http://www.opencores.org/lgpl.shtml                     ////
+////                                                              ////
 //////////////////////////////////////////////////////////////////////
 //
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.1.1  2006/05/31 05:59:41  Zheng Cao
+// first version
+//
 // Revision 1.1  2005/12/25 16:43:10  Zheng Cao
 // 
 // 
@@ -53,16 +56,16 @@
 module rxClkgen(rxclk_in, reset, rxclk, rxclk_180, locked);
     input rxclk_in;
     input reset;
-	 output rxclk;
-	 output rxclk_180;
-	 output locked;
+    output rxclk;
+    output rxclk_180;
+    output locked;
 
-	 dcm0 rx_dcm(.CLKIN_IN(rxclk_in), 
+    dcm0 rx_dcm(.CLKIN_IN(rxclk_in), 
                 .RST_IN(reset), 
                 .CLKIN_IBUFG_OUT(), 
                 .CLK0_OUT(rxclk), 
-					 .CLK180_OUT(rxclk_180),	
+                .CLK180_OUT(rxclk_180),	
                 .LOCKED_OUT(locked)
-					 );
+               );
 
 endmodule
