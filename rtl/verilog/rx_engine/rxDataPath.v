@@ -43,6 +43,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.6  2006/06/16 06:36:28  fisher5090
+// no message
+//
 // Revision 1.5  2006/06/12 18:58:36  Zheng Cao
 // no message
 //
@@ -495,24 +498,35 @@ module rxDataPath(rxclk, reset, rxd64, rxc8, inband_fcs, receiving, start_da, st
     assign rx_bad_frame = bad_frame_get & (fifo_state == WAIT);
     
     assign fifo_wr_en = receiving_d2;
- 
-    rxdatafifo rxdatain(.clk(rxclk),
-                        .sinit(reset),
-                        .din(rxd64_d3),
-                        .wr_en(fifo_wr_en),
-                        .rd_en(fifo_rd_en),
-                        .dout(rx_data_tmp),
-                        .full(rxfifo_full),
-                        .empty(rxfifo_empty));
+    
+    defparam rxdatain.pWordWidth = 64;
+    defparam rxdatain.pDepthWidth = 7;
 
-    rxcntrlfifo rxcntrlin(.clk(rxclk),
-                          .sinit(reset),
-                          .din(rxc_fifo),
-                          .wr_en(fifo_wr_en),
-                          .rd_en(fifo_rd_en),
-                          .dout(rx_data_valid_tmp),
-                          .full(),
-                          .empty());
+    SwitchSyncFIFO rxdatain(
+	.nReset(!reset),
+	.iClk(rxclk),
+	.iWEn(fifo_wr_en),
+	.ivDataIn(rxd64_d3),
+	.iREn(fifo_rd_en),
+	.ovDataOut(rx_data_tmp),
+	.qEmpty(rxfifo_empty),
+	.qFull(rxfifo_full),
+	.qvCount()
+    );
+    defparam rxcntrlin.pWordWidth = 8;
+    defparam rxcntrlin.pDepthWidth = 7;
+
+    SwitchSyncFIFO rxcntrlin(
+	.nReset(!reset),
+	.iClk(rxclk),
+	.iWEn(fifo_wr_en),
+	.ivDataIn(rxc_fifo),
+	.iREn(fifo_rd_en),
+	.ovDataOut(rx_data_valid_tmp),
+	.qEmpty(),
+	.qFull(),
+	.qvCount()
+    );
     reg [63:0] rx_data;
     always@(posedge rxclk or posedge reset) begin
          if (reset) begin

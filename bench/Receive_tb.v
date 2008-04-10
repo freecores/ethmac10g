@@ -1,14 +1,14 @@
 /*-------------------------------------------------------------------------------
--- $Revision: 1.4 $ $Date: 2006-06-12 10:02:32 $
+-- $Revision: 1.5 $ $Date: 2008-04-10 00:44:36 $
 -- Title      : Demo testbench
 -- Project    : 10 Gigabit Ethernet MAC
 -------------------------------------------------------------------------------
--- File       : Receive_tb.v
+-- File       : demo_tb.v
 -------------------------------------------------------------------------------
 -- Description: This testbench will exercise the ports of the MAC core to
 --              demonstrate the functionality.
 -------------------------------------------------------------------------------
--- Codes are mainly from Xilinx's testbench.
+-- Copyright (c) 2001 Xilinx Inc.
 -------------------------------------------------------------------------------
 --
 -- This testbench performs the following operations on the MAC core:
@@ -21,8 +21,8 @@
 --    up to the minimum.
 --  - These frames are then looped back and sent out by the transmitter.
 --  */
-`timescale 1ps / 1ps
 
+`timescale 1ps / 1ps
 
 module frame_typ;
    // This module abstracts the frame data for simpler manipulation
@@ -86,6 +86,7 @@ endmodule // frame_typ
 `define STATS_RX_OK       9'b000000000
 `define STATS_RX_FCS_ERR  9'b000000001
 `define MIN_FRAME_DATA_BYTES 60
+
 
 module testbench;
 
@@ -227,8 +228,8 @@ module testbench;
         frame1.ctrl[17] = 4'b1111;
         frame1.ctrl[18] = 4'b1111;
         frame1.ctrl[19] = 4'b1111;
-        frame1.ctrl[20] = 4'b0111;
-        frame1.ctrl[21] = 4'b0000;
+        frame1.ctrl[20] = 4'b1111;
+        frame1.ctrl[21] = 4'b0011;
         frame1.ctrl[22] = 4'b0000;
         frame1.ctrl[23] = 4'b0000;
         frame1.ctrl[24] = 4'b0000;
@@ -298,7 +299,7 @@ module testbench;
         frame2.ctrl[17] = 4'b1111;
         frame2.ctrl[18] = 4'b1111;
         frame2.ctrl[19] = 4'b1111;
-        frame2.ctrl[20] = 4'b1111;
+        frame2.ctrl[20] = 4'b0000;
         frame2.ctrl[21] = 4'b0000;
         frame2.ctrl[22] = 4'b0000;
         frame2.ctrl[23] = 4'b0000;
@@ -322,7 +323,7 @@ module testbench;
         frame3.data[3]  = 32'hEE111500;
         frame3.data[4]  = 32'h11EE11EE;  
         frame3.data[5]  = 32'hEE11EE11;
-        frame3.data[6]  = 32'h11EE11EE;  
+        frame3.data[6]  = 64'h11EE11EE;  
         frame3.data[7]  = 32'hEE11EE11;
         frame3.data[8]  = 32'h00EE11EE;
         frame3.data[9]  = 32'h00000000;
@@ -398,31 +399,36 @@ module testbench;
   wire rx_good_frame;
   wire rx_bad_frame;
   wire rx_clk;
-  wire [17:0] rxStatRegPlus;
-  wire [2:0] rxCfgofRS;
-  wire [1:0] rxTxLinkFault;
-  wire [64:0] configuration_vector;
+  reg  rxclk_2x;
+  wire [28:0] rx_statistics_vector;
+  wire rx_statistics_valid;
   reg  xgmii_rx_clk;
   reg  [31:0] xgmii_rxd;
   reg  [3:0]  xgmii_rxc;
 
+   reg   rx_monitor_finished;
+   wire  simulation_finished;
+   
+
   /*---------------------------------------------------------------------------
   -- wire up Device Under Test
   ---------------------------------------------------------------------------*/
- 	rxReceiveEngine uut (
-		.xgmii_rxclk(xgmii_rx_clk), 
+  wire [64:0] configuration_vector;
+   	rxReceiveEngine uut (
+		.xgmii_rxclk(xgmii_rx_clk),
+		.rxclk_2x(rxclk_2x), 
 		.reset_in(reset),
 		.rxclk_out(rx_clk),
 		.xgmii_rxd(xgmii_rxd), 
 		.xgmii_rxc(xgmii_rxc), 
-		.rxStatRegPlus(rxStatRegPlus), 
+		.rxStatRegPlus(), 
 		.cfgRxRegData_in(configuration_vector), 
 		.rx_data(rx_data), 
 		.rx_data_valid(rx_data_valid), 
 		.rx_good_frame(rx_good_frame), 
 		.rx_bad_frame(rx_bad_frame), 
-		.rxCfgofRS(rxCfgofRS), 
-		.rxTxLinkFault(rxTxLinkFault)
+		.rxCfgofRS(), 
+		.rxTxLinkFault()
 //		.fcTxPauseData(), 
 //		.fcTxPauseValid()
 	);
@@ -434,14 +440,27 @@ module testbench;
   ---------------------------------------------------------------------------*/
    initial
      begin
-        xgmii_rx_clk <= 0;
+        xgmii_rx_clk <= 1;
         #1000;
         forever
           begin
              #3200;
-             xgmii_rx_clk <= 1;
-             #3200;
              xgmii_rx_clk <= 0;
+             #3200;
+             xgmii_rx_clk <= 1;
+          end
+     end // initial begin
+   
+   initial
+     begin
+        rxclk_2x <= 1;
+        #1000;
+        forever
+          begin
+             #1600;
+             rxclk_2x <= 0;
+             #1600;
+             rxclk_2x <= 1;
           end
      end // initial begin
 
@@ -563,12 +582,13 @@ module testbench;
    initial
      begin : p_rx_stimulus
         integer I;
+        $display("Timing checks are not valid");
         while (reset !== 0)
           rx_stimulus_send_idle;
-        for (I = 0; I < 99; I = I + 1)
+        for (I = 0; I < 100; I = I + 1)
           rx_stimulus_send_idle;
+        $display("Timing checks are valid");
         rx_stimulus_send_frame(frame0.tobits(0));
-        rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_idle;
         rx_stimulus_send_frame(frame1.tobits(0));
@@ -577,11 +597,114 @@ module testbench;
         rx_stimulus_send_frame(frame2.tobits(0));
         rx_stimulus_send_idle;
         rx_stimulus_send_idle;
-        rx_stimulus_send_idle;
         rx_stimulus_send_frame(frame3.tobits(0));
         while (1)
           rx_stimulus_send_idle;
      end // block: p_rx_stimulus
+
+
+   /* rx monitor - checks that the receiver extracts the information
+    * inserted into the PHY interface
+    */
+   task wait_on_rx_clk;
+      begin
+         @(posedge rx_clk);
+         #6399;
+      end
+   endtask // wait_on_rx_clk
+   
+   task rx_monitor_check_frame;
+      input `FRAME_TYP frame;
+      integer column_count, I, J;
+      reg [31:0] current_column_data;
+      reg good_frame_flagged;
+      reg bad_frame_flagged;
+      reg wrong;
+      begin
+         rx_monitor_working_frame.frombits(frame);
+         column_count = 0;
+         wrong = 0;
+         // wait for the first real column of data
+         while (rx_data_valid === 8'b00000000)
+           wait_on_rx_clk;
+         // frame has started, get columns of frame
+         while (rx_data_valid !== 8'b00000000)
+           begin
+              // only check contents of good frames
+              if (!rx_monitor_working_frame.underrun)
+                begin
+                   if (rx_data_valid !== { rx_monitor_working_frame.ctrl[column_count+1], 
+                                           rx_monitor_working_frame.ctrl[column_count] })
+                     $display("ERROR: Receiver fail: RX_DATA_VALID incorrect rx_data_valid is %x, expected is %x %x",rx_data_valid,rx_monitor_working_frame.ctrl[column_count+1],rx_monitor_working_frame.ctrl[column_count]);
+                   current_column_data = rx_monitor_working_frame.data[column_count];
+                   for (I = 0; I < 4; I = I + 1)
+                     if (rx_data_valid[I])
+                       for (J = 0; J < 8; J = J + 1)
+                         if (rx_data[I*8+J] !== current_column_data[I*8+J])
+                            wrong = 1;
+                   if(wrong == 1)
+                     $display("ERROR: Receiver fail : 1 RX_DATA incorrect rx_data is %x, expected is %x",rx_data[31:0],current_column_data[31:0]);
+                   current_column_data = rx_monitor_working_frame.data[column_count+1];
+                   wrong = 0;
+                   for (I = 4; I < 8; I = I + 1)
+                     if (rx_data_valid[I])
+                       for (J = 0; J < 8; J = J + 1)
+                         if (rx_data[I*8+J] !== current_column_data[(I-4)*8+J])
+                            wrong = 1;
+                   if(wrong == 1)
+                       $display("ERROR: Receiver fail : 2 RX_DATA incorrect rx_data is %x, expected is %x",rx_data[63:32],current_column_data[31:0]);
+                end // if (!rx_monitor_working_frame.underrun)
+
+              good_frame_flagged = rx_good_frame;
+              bad_frame_flagged = rx_bad_frame;
+              column_count = column_count + 2;
+              wait_on_rx_clk;
+           end // while (RX_DATA_VALID != 8'b00000000)
+         // check whether the frame has been flagged at the right time
+         while (!good_frame_flagged && !bad_frame_flagged)
+           begin
+              good_frame_flagged = rx_good_frame;
+              bad_frame_flagged = rx_bad_frame;
+              if (rx_data_valid !== 8'b00000000)
+                $display("ERROR: Receiver fail: New frame received before good/bad flag from previous frame");
+              wait_on_rx_clk;
+           end
+         if (rx_monitor_working_frame.underrun)
+           begin
+              if (good_frame_flagged)
+                $display("ERROR: Receive Fail: bad frame flagged as good");
+           end
+         else
+           begin
+              if (bad_frame_flagged)
+                $display("ERROR: Receive Fail: good frame flagged as bad");
+           end
+         $display("Receiver: Frame extracted from client interface");
+      end
+   endtask // rx_monitor_check_frame
+
+   /*---------------------------------------------------------------------------
+  -- RX Monitor process. This process checks the data coming out of the 
+   receiver
+  -- to make sure that it matches that inserted into the transmitter.
+  ---------------------------------------------------------------------------*/
+  initial
+    begin : p_rx_monitor
+       rx_monitor_finished = 0;
+       
+       // first, get synced up with the RX clock
+       @(negedge reset)
+         wait_on_rx_clk;
+
+       rx_monitor_check_frame(frame0.tobits(0));
+       rx_monitor_check_frame(frame1.tobits(0));
+       rx_monitor_check_frame(frame2.tobits(0));
+       rx_monitor_check_frame(frame3.tobits(0));
+       rx_monitor_finished = 1;
+    end // block: p_rx_monitor
+
+
+
 
    // reset process
    initial
@@ -593,11 +716,24 @@ module testbench;
      end
 
    // Simulation control
+   assign simulation_finished = 
+     rx_monitor_finished
+     ;
+
    initial
      begin
-          #100000000;
-          $display("** failure: Testbench timed out");          
-          $stop;
+        fork: sim_in_progress
+          @(posedge simulation_finished) disable sim_in_progress;
+           #10000000                     disable sim_in_progress;
+        join
+        if (simulation_finished)
+          $display("** Finish: Simulation Stopped");
+        else
+          $display("** Failure: ERROR: Testbench timed out");          
+        $stop;
      end // initial begin
 
-endmodule 
+endmodule
+
+
+

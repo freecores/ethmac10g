@@ -41,6 +41,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2006/06/16 06:36:28  fisher5090
+// no message
+//
 // Revision 1.1.1.1  2006/05/31 05:59:41  Zheng Cao
 // first version
 //
@@ -59,13 +62,19 @@ module rxClkgen(rxclk_in, reset, rxclk, rxclk_180, locked);
     output rxclk;
     output rxclk_180;
     output locked;
-
-    dcm0 rx_dcm(.CLKIN_IN(rxclk_in), 
+    // 2x clock should be provided with dcm
+    wire rxclk;
+    wire rxclk_180;
+  //  wire rxclk_2x;
+    /*dcm0 rx_dcm(.CLKIN_IN(rxclk_in), 
                 .RST_IN(reset), 
                 .CLKIN_IBUFG_OUT(), 
                 .CLK0_OUT(rxclk), 
                 .CLK180_OUT(rxclk_180),	
                 .LOCKED_OUT(locked)
-               );
+               );*/
+    assign rxclk = rxclk_in;
+    assign rxclk_180 = ~rxclk;
+    assign locked = ~reset;
 
 endmodule

@@ -41,6 +41,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2006/06/16 06:36:28  fisher5090
+// no message
+//
 // Revision 1.1.1.1  2006/05/31 05:59:43  Zheng Cao
 // first version
 //
@@ -53,9 +56,10 @@
 `include "timescale.v"
 `include "xgiga_define.v"
 
-module rxRSLayer(rxclk, rxclk_180, reset, link_fault, rxd64, rxc8, rxd_in, rxc_in);
+module rxRSLayer(rxclk, rxclk_180, rxclk_2x, reset, link_fault, rxd64, rxc8, rxd_in, rxc_in);
     input rxclk;
     input rxclk_180;
+    input rxclk_2x;
     input reset;     
     input [31:0] rxd_in;
     input [3:0] rxc_in;
@@ -69,6 +73,7 @@ module rxRSLayer(rxclk, rxclk_180, reset, link_fault, rxd64, rxc8, rxd_in, rxc_i
 
     rxRSIO datapath(.rxclk(rxclk), 
                     .rxclk_180(rxclk_180),
+                    .rxclk_2x(rxclk_2x),
                     .reset(reset), 
                     .rxd_in(rxd_in), 
                     .rxc_in(rxc_in), 

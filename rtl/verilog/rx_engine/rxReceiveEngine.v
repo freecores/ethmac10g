@@ -41,6 +41,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.6  2006/06/16 06:39:59  fisher5090
+// no message
+//
 // Revision 1.5  2006/06/16 06:36:28  Zheng Cao
 // no message
 //
@@ -59,10 +62,11 @@
 `include "timescale.v"
 `include "xgiga_define.v"
 
-module rxReceiveEngine(xgmii_rxclk, reset_in, xgmii_rxd, xgmii_rxc, rxStatRegPlus,
+module rxReceiveEngine(xgmii_rxclk, rxclk_2x, reset_in, xgmii_rxd, xgmii_rxc, rxStatRegPlus,
                        cfgRxRegData_in, rx_data, rx_data_valid, rx_good_frame, rxclk_out,
                        rx_bad_frame, rxCfgofRS, rxTxLinkFault);//, fcTxPauseData, fcTxPauseValid);
     input xgmii_rxclk; //Input clock of receive engine
+    input rxclk_2x;
     input reset_in; //Globle reset of receive engine
     input [31:0] xgmii_rxd; //XGMII RXD
     input [3:0] xgmii_rxc;  //XGMII RXC
@@ -280,7 +284,7 @@ module rxReceiveEngine(xgmii_rxclk, reset_in, xgmii_rxd, xgmii_rxc, rxStatRegPlu
    /////////////////////////////////////
    // RS Layer
    /////////////////////////////////////
-    rxRSLayer rx_rs(.rxclk(rxclk), .rxclk_180(rxclk_180), .reset(reset), .link_fault(link_fault), .rxd64(rxd64), .rxc8(rxc8), .rxd_in(xgmii_rxd), .rxc_in(xgmii_rxc));
+    rxRSLayer rx_rs(.rxclk(rxclk), .rxclk_180(rxclk_180), .rxclk_2x(rxclk_2x), .reset(reset), .link_fault(link_fault), .rxd64(rxd64), .rxc8(rxc8), .rxd_in(xgmii_rxd), .rxc_in(xgmii_rxc));
     
    /////////////////////////////////////
    // Statistic module

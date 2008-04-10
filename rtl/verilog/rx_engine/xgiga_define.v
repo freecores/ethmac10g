@@ -41,6 +41,9 @@
 // CVS REVISION HISTORY:
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2006/06/16 06:36:28  fisher5090
+// no message
+//
 // Revision 1.1.1.1  2006/05/31 05:59:44  Zheng Cao
 // first version
 //
@@ -72,6 +75,7 @@
 `define SFD        8'hd5
 `define SEQUENCE   8'h9a
 `define ERROR      8'hfe
+`define IDLE       8'h07
 `define TAG_SIGN   16'h0081//8100
 `define PAUSE_SIGN 32'h01000888//8808
 
